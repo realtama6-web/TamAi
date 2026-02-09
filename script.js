@@ -10,10 +10,12 @@
 const OPENROUTER_API_KEY = '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';
 const OPENROUTER_API_URL = 'https://openrouter.io/api/v1/chat/completions';
 
-// SMTP Simulation Configuration (Frontend Logic)
+// SMTPJS Configuration - OTP Email Real
 const SMTP_CONFIG = {
     email: 'tamaidev.id@gmail.com',
-    appPassword: 'lehu vofk wrqp rgnp'
+    appPassword: 'lehu vofk wrqp rgnp',
+    // SecureToken untuk keamanan app password
+    secureToken: 'f3c88682-1437-4340-9a2c-f67f62088f1a'
 };
 
 // Storage Keys
@@ -241,7 +243,7 @@ async function handleLogin(e) {
     const password = DOM.loginPassword.value.trim();
     
     if (!email || !password) {
-        alert('Username dan Password harus diisi');
+        showNotification('Email dan Password harus diisi', 'error');
         return;
     }
     
@@ -257,8 +259,9 @@ async function handleLogin(e) {
         showMainApp();
         loadChatsFromStorage();
         resetAuthForms();
+        showNotification('✅ Login berhasil!', 'success');
     } else {
-        alert('Email/Username atau Password salah. Coba daftar terlebih dahulu!');
+        showNotification('❌ Email/Username atau Password salah', 'error');
     }
 }
 
@@ -271,19 +274,19 @@ async function handleRegister(e) {
     const password = DOM.registerPassword.value.trim();
     
     if (!username || !displayName || !email || !password) {
-        alert('Semua field harus diisi');
+        showNotification('Semua field harus diisi', 'error');
         return;
     }
     
     if (password.length < 6) {
-        alert('Password minimal 6 karakter');
+        showNotification('Password minimal 6 karakter', 'error');
         return;
     }
     
     // Check if user already exists
     const users = getAllUsersFromStorage();
     if (users.some(u => u.email === email || u.username === username)) {
-        alert('Email atau Username sudah terdaftar');
+        showNotification('Email atau Username sudah terdaftar', 'error');
         return;
     }
     
@@ -296,10 +299,95 @@ async function handleRegister(e) {
     };
     
     sessionStorage.setItem('tamai_temp_user', JSON.stringify(tempUser));
-    generateAndSendOTP(email);
     
+    // Switch to OTP form
     switchAuthForm('otpForm');
-    DOM.otpEmailDisplay.textContent = `Kode OTP telah dikirim ke ${email}`;
+    DOM.otpEmailDisplay.textContent = `📧 Kode OTP telah dikirim ke ${email}`;
+    DOM.otpCode.value = '';
+    
+    // Generate and send OTP
+    generateAndSendOTP(email);
+}
+
+// Fungsi untuk mengirimkan OTP ke email menggunakan SMTPJS dengan SecureToken
+async function sendEmailOTP(targetEmail, code) {
+    const senderEmail = SMTP_CONFIG.email; // tamaidev.id@gmail.com
+    
+    // Format pesan email yang keren dengan styling
+    const emailSubject = 'Kode Verifikasi TamAi v3 - Tuan';
+    const emailBody = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
+            <div style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h1 style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1px;">TamAi v3</h1>
+                <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; font-weight: 500;">Smart Chat Assistant</p>
+            </div>
+            <div style="background: white; padding: 40px 30px; border-radius: 0 0 12px 12px;">
+                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 24px; font-weight: 700;">Kode Verifikasi Anda</h2>
+                
+                <p style="color: #475569; line-height: 1.8; margin: 0 0 30px 0; font-size: 15px;">
+                    Selamat datang di <strong>TamAi v3</strong>! 👋<br>
+                    Gunakan kode verifikasi di bawah ini untuk menyelesaikan proses pendaftaran akun Anda:
+                </p>
+                
+                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 30px; border-radius: 10px; margin: 0 0 30px 0; border-left: 4px solid #0ea5e9; text-align: center;">
+                    <p style="margin: 0 0 12px 0; color: #64748b; text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 600;">Kode Verifikasi 6 Digit</p>
+                    <p style="margin: 0; font-size: 52px; font-weight: 900; color: #0ea5e9; letter-spacing: 12px; font-family: 'Courier New', monospace; tracking: 10px;">${code}</p>
+                </div>
+                
+                <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 0 0 30px 0;">
+                    <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">
+                        <strong>⏱️ Perhatian:</strong> Kode verifikasi akan berlaku selama <strong>5 menit</strong>. Jika waktu habis, Anda dapat meminta kode baru.<br>
+                        <strong>🔒 Keamanan:</strong> Jangan bagikan kode ini kepada siapa pun, termasuk tim support TamAi.
+                    </p>
+                </div>
+                
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
+                    <p style="color: #94a3b8; font-size: 12px; line-height: 1.6; margin: 0;">
+                        Jika Anda tidak meminta kode verifikasi ini, abaikan email ini.<br>
+                        Pertanyaan? Hubungi kami di <a href="mailto:support@tamai.io" style="color: #0ea5e9; text-decoration: none;">support@tamai.io</a>
+                    </p>
+                </div>
+            </div>
+            <div style="background: #1e293b; padding: 20px 30px; text-align: center; color: #cbd5e1; border-radius: 0 0 12px 12px; font-size: 12px; line-height: 1.6;">
+                <p style="margin: 0 0 8px 0;">© 2026 TamAi. All rights reserved.</p>
+                <p style="margin: 0; opacity: 0.8;">Smart Chat Assistant Platform</p>
+            </div>
+        </div>
+    `;
+    
+    return new Promise((resolve, reject) => {
+        try {
+            // Menggunakan SMTPJS untuk mengirim email OTP
+            // Dengan SecureToken untuk keamanan App Password
+            Email.send({
+                Host: "smtp.gmail.com",
+                Username: senderEmail,
+                Password: SMTP_CONFIG.appPassword,
+                SecureToken: SMTP_CONFIG.secureToken,
+                To: targetEmail,
+                From: senderEmail,
+                Subject: emailSubject,
+                html: emailBody,
+                port: 465,
+                secure: true
+            }).then(
+                function(message) {
+                    console.log('✅ Email OTP berhasil dikirim!');
+                    console.log('📧 Penerima: ' + targetEmail);
+                    console.log('📨 Response: ' + message);
+                    resolve(true);
+                }
+            ).catch(
+                function(error) {
+                    console.error('❌ Gagal mengirim email OTP:', error);
+                    reject(error);
+                }
+            );
+        } catch (error) {
+            console.error('❌ Error dalam fungsi sendEmailOTP:', error);
+            reject(error);
+        }
+    });
 }
 
 async function generateAndSendOTP(email) {
@@ -310,19 +398,51 @@ async function generateAndSendOTP(email) {
     sessionStorage.setItem('tamai_otp', otp);
     sessionStorage.setItem('tamai_otp_timestamp', Date.now().toString());
     
-    // In production, this would call SMTP service
-    // For now, we'll log it and show it in console
-    console.log(`[OTP Simulation] Email: ${email}`);
-    console.log(`[OTP Simulation] Code: ${otp}`);
-    console.log(`[SMTP Config] Email: ${SMTP_CONFIG.email}`);
-    console.log(`[SMTP Config] App Password: ${SMTP_CONFIG.appPassword}`);
-    console.log('Untuk demo, gunakan kode OTP yang ditampilkan di console');
+    console.log('📨 Generating OTP untuk email: ' + email);
+    console.log('🔐 Kode OTP yang dihasilkan: ' + otp);
     
-    // Show a helpful message to user
-    setTimeout(() => {
-        alert(`Demo Mode: Gunakan kode OTP dari console untuk verifikasi\n\nKode OTP: ${otp}`);
-    }, 500);
+    try {
+        // Panggil fungsi sendEmailOTP untuk mengirim email sesungguhnya
+        console.log('📧 Sedang mengirimkan kode OTP via SMTPJS...');
+        const emailSent = await sendEmailOTP(email, otp);
+        
+        if (emailSent) {
+            console.log('✅ OTP berhasil dikirim ke email: ' + email);
+            console.log('🔐 Kode OTP valid selama 5 menit');
+            
+            // Show success notification
+            showNotification('📧 Kode OTP berhasil dikirim! Cek email Anda.', 'success');
+        }
+    } catch (error) {
+        console.error('❌ Error mengirim OTP:', error);
+        showNotification('⚠️ Gagal mengirim email. Periksa koneksi internet Anda.', 'error');
+    }
 }
+
+function showNotification(message, type = 'info') {
+    const notif = document.createElement('div');
+    notif.className = `notification notification-${type}`;
+    notif.textContent = message;
+    notif.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+    `;
+    document.body.appendChild(notif);
+    
+    setTimeout(() => {
+        notif.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notif.remove(), 300);
+    }, 3000);
+}
+
 
 async function handleOTPVerification(e) {
     e.preventDefault();
@@ -332,19 +452,19 @@ async function handleOTPVerification(e) {
     const otpTimestamp = parseInt(sessionStorage.getItem('tamai_otp_timestamp'));
     
     if (!enteredOTP || enteredOTP.length !== OTP_LENGTH) {
-        alert('OTP harus 6 digit');
+        showNotification('⚠️ OTP harus 6 digit', 'error');
         return;
     }
     
     if (enteredOTP !== storedOTP) {
-        alert('OTP salah');
+        showNotification('❌ OTP yang Anda masukkan salah', 'error');
         return;
     }
     
     // Check OTP timeout (5 menit)
     const currentTime = Date.now();
     if ((currentTime - otpTimestamp) > (OTP_TIMEOUT * 1000)) {
-        alert('OTP sudah kadaluarsa. Silakan request OTP baru');
+        showNotification('⏱️ OTP sudah kadaluarsa. Silakan request OTP baru', 'error');
         return;
     }
     
@@ -358,6 +478,7 @@ async function handleOTPVerification(e) {
     sessionStorage.removeItem('tamai_temp_user');
     sessionStorage.removeItem('tamai_otp_retry_count');
     
+    showNotification('✅ OTP verifikasi berhasil!', 'success');
     switchAuthForm('profilePicForm');
     DOM.otpCode.value = '';
 }
@@ -376,7 +497,7 @@ async function handleProfilePicUpload(e) {
     const file = fileInput.files[0];
     
     if (!file) {
-        alert('Silakan pilih foto profil');
+        showNotification('⚠️ Silakan pilih foto profil', 'error');
         return;
     }
     
@@ -406,6 +527,8 @@ async function handleProfilePicUpload(e) {
         showMainApp();
         loadChatsFromStorage();
         resetAuthForms();
+        
+        showNotification('✅ Akun berhasil dibuat! Selamat datang!', 'success');
     };
     
     reader.readAsDataURL(file);
@@ -760,26 +883,75 @@ function addCopyButtonsToCodeBlocks() {
             return;
         }
         
+        // Create button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'code-block-actions';
+        buttonContainer.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        `;
+        
         const button = document.createElement('button');
         button.className = 'copy-code-btn';
-        button.textContent = 'Copy';
+        button.textContent = '📋 Copy';
         button.type = 'button';
+        button.style.cssText = `
+            padding: 6px 12px;
+            background: rgba(14, 165, 233, 0.9);
+            color: white;
+            border: 1px solid rgba(14, 165, 233, 0.5);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        `;
+        
+        button.addEventListener('mouseover', () => {
+            button.style.background = 'rgba(14, 165, 233, 1)';
+            button.style.transform = 'scale(1.05)';
+        });
+        
+        button.addEventListener('mouseout', () => {
+            if (!button.classList.contains('copied')) {
+                button.style.background = 'rgba(14, 165, 233, 0.9)';
+                button.style.transform = 'scale(1)';
+            }
+        });
         
         button.addEventListener('click', () => {
             const code = block.querySelector('code').textContent;
             navigator.clipboard.writeText(code).then(() => {
+                button.innerHTML = '✅ Copied!';
                 button.classList.add('copied');
-                button.textContent = 'Copied!';
+                button.style.background = 'rgba(16, 185, 129, 0.9)';
                 
                 setTimeout(() => {
+                    button.innerHTML = '📋 Copy';
                     button.classList.remove('copied');
-                    button.textContent = 'Copy';
+                    button.style.background = 'rgba(14, 165, 233, 0.9)';
+                    button.style.transform = 'scale(1)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                button.innerHTML = '❌ Failed';
+                setTimeout(() => {
+                    button.innerHTML = '📋 Copy';
                 }, 2000);
             });
         });
         
+        buttonContainer.appendChild(button);
+        
+        // Position block as relative so absolute positioning works
         block.style.position = 'relative';
-        block.appendChild(button);
+        block.style.paddingTop = '40px';
+        block.appendChild(buttonContainer);
     });
 }
 
@@ -1034,7 +1206,10 @@ function resetAuthForms() {
 function updateProfileDisplay() {
     if (appState.currentUser) {
         DOM.profileDisplayName.textContent = appState.currentUser.displayName;
-        DOM.profileUsername.textContent = '@' + appState.currentUser.username;
+        
+        // Update profile username dengan @username dan PRO badge
+        const usernameHandle = DOM.profileUsername;
+        usernameHandle.innerHTML = `@${appState.currentUser.username} <span class="pro-badge">PRO</span>`;
         
         if (appState.currentUser.profilePic) {
             DOM.profileAvatarImg.src = appState.currentUser.profilePic;
@@ -1115,7 +1290,7 @@ function checkAuthStatus() {
    ======================================== */
 
 function handleLogout() {
-    if (confirm('Yakin ingin logout?')) {
+    if (confirm('👋 Yakin ingin logout?')) {
         // Clear user data
         localStorage.removeItem(STORAGE_KEYS.USER_DATA);
         localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
@@ -1137,6 +1312,8 @@ function handleLogout() {
         
         // Close profile menu
         DOM.profileMenu.classList.add('hidden');
+        
+        showNotification('👋 Anda berhasil logout', 'success');
     }
 }
 

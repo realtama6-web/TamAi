@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TamAi v3 - Smart Chat Assistant</title>
     <link rel="stylesheet" href="style.css">
+    <!-- SMTPJS Library untuk Pengiriman Email OTP Real -->
+    <script src="https://smtpjs.com/v3/smtp.js"></script>
 </head>
 <body>
     <!-- AUTH MODAL -->
@@ -35,7 +37,7 @@
                     <span>Don't have an account?</span>
                 </div>
                 
-                <button class="btn btn-secondary" onclick="switchAuthForm('registerForm')">Create New Account</button>
+                <button type="button" class="btn btn-secondary" onclick="switchAuthForm('registerForm')">Create New Account</button>
                 
                 <div class="auth-demo-hint">
                     <p>Demo: Use any email/password to register</p>
@@ -75,7 +77,7 @@
                     <button type="submit" class="btn btn-primary">Continue to OTP</button>
                 </form>
                 
-                <button class="btn btn-secondary" onclick="switchAuthForm('loginForm')">Back to Login</button>
+                <button type="button" class="btn btn-secondary" onclick="switchAuthForm('loginForm')">Back to Login</button>
             </div>
 
             <!-- OTP VERIFICATION FORM -->
@@ -177,7 +179,9 @@
                     </div>
                     <div class="profile-info">
                         <div id="profileDisplayName" class="profile-name"></div>
-                        <div id="profileUsername" class="profile-handle"></div>
+                        <div id="profileUsername" class="profile-handle">
+                            <span class="pro-badge">PRO</span>
+                        </div>
                     </div>
                     <button id="profileMenuBtn" class="profile-menu-btn" aria-label="Profile menu">
                         <svg viewBox="0 0 24 24" fill="currentColor">
@@ -195,7 +199,7 @@
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>
                         </svg>
-                        Pengaturan
+                        Settings
                     </button>
                     <button id="logoutBtn" class="profile-menu-item logout">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -255,13 +259,13 @@
                             class="hidden-file-input"
                         >
                         
-                        <input 
-                            type="text" 
+                        <textarea 
                             id="messageInput" 
                             class="message-input" 
                             placeholder="Ketik pesan atau tanya AI..."
                             autocomplete="off"
-                        >
+                            rows="1"
+                        ></textarea>
                         
                         <button id="sendBtn" class="send-btn" type="button" aria-label="Send message">
                             <svg viewBox="0 0 24 24" fill="currentColor">
@@ -321,7 +325,7 @@
     <div id="loadingSpinner" class="loading-spinner hidden">
         <div class="spinner"></div>
     </div>
-
+    
     <script src="script.js"></script>
 </body>
 </html>
