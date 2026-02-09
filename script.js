@@ -73,7 +73,8 @@ const DOM = {
   settingsDisplayName: document.getElementById('settingsDisplayName'),
   settingsEmail: document.getElementById('settingsEmail'),
   sidebar: document.getElementById('sidebar'),
-  sidebarToggleClose: document.getElementById('sidebarToggleClose')
+  sidebarToggleClose: document.getElementById('sidebarToggleClose'),
+  loginBypassDevBtn: document.getElementById('loginBypassDevBtn')
 };
 
 const OTP_LENGTH = 6;
@@ -99,6 +100,7 @@ function bindEvents() {
   if (DOM.profilePicFormElement) DOM.profilePicFormElement.addEventListener('submit', handleProfilePicUpload);
   if (DOM.resendOtpBtn) DOM.resendOtpBtn.addEventListener('click', resendOTP);
   if (DOM.bypassDevBtn) DOM.bypassDevBtn.addEventListener('click', bypassOTPForDev);
+  if (DOM.loginBypassDevBtn) DOM.loginBypassDevBtn.addEventListener('click', loginBypassDev);
 
   if (DOM.newChatBtn) DOM.newChatBtn.addEventListener('click', createNewChat);
   if (DOM.sendBtn) DOM.sendBtn.addEventListener('click', sendMessage);
@@ -296,6 +298,27 @@ function bypassOTPForDev() {
   loadChatsForCurrentUser();
   showMainApp();
   showNotification('✅ Development bypass - akun langsung aktif', 'success');
+}
+
+function loginBypassDev() {
+  const devEmail = 'tamaidev.id@gmail.com';
+  localStorage.setItem('userEmail', devEmail);
+  
+  const devUser = {
+    username: 'tamaidedev',
+    displayName: 'TamAiDev',
+    email: devEmail,
+    password: 'devpass123',
+    profilePic: null
+  };
+  
+  appState.currentUser = devUser;
+  appState.isLoggedIn = true;
+  saveCurrentUser(devUser);
+  
+  loadChatsForCurrentUser();
+  showMainApp();
+  showNotification('✅ LOGIN BYPASS DEV AKTIF - Langsung ke Chat!', 'success');
 }
 
 async function handleProfilePicUpload(e) {

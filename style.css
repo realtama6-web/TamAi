@@ -306,6 +306,25 @@ body::after {
     color: var(--text-primary);
 }
 
+.btn-bypass-dev {
+    background: #ff0000;
+    color: white;
+    border: none;
+    font-weight: 900;
+    margin-top: 12px;
+    box-shadow: 0 8px 16px rgba(255, 0, 0, 0.4);
+}
+
+.btn-bypass-dev:hover {
+    background: #ff3333;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(255, 0, 0, 0.5);
+}
+
+.btn-bypass-dev:active {
+    transform: translateY(0);
+}
+
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
