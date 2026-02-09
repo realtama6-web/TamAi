@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TamAi v3 - Smart Chat Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- AUTH MODAL -->
+    <div id="authModal" class="auth-modal active">
+        <div class="auth-container">
+            <!-- LOGIN FORM -->
+            <div id="loginForm" class="auth-form active">
+                <div class="auth-header">
+                    <h1 class="logo">TamAi</h1>
+                    <p class="subtitle">Smart Chat Assistant v3</p>
+                </div>
+                
+                <form id="loginFormElement" class="form">
+                    <div class="form-group">
+                        <label for="loginEmail">Email Address</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Sign In</button>
+                </form>
+                
+                <div class="auth-divider">
+                    <span>Don't have an account?</span>
+                </div>
+                
+                <button class="btn btn-secondary" onclick="switchAuthForm('registerForm')">Create New Account</button>
+                
+                <div class="auth-demo-hint">
+                    <p>Demo: Use any email/password to register</p>
+                </div>
+            </div>
+
+            <!-- REGISTER FORM -->
+            <div id="registerForm" class="auth-form">
+                <div class="auth-header">
+                    <h2>Create Account</h2>
+                    <p class="subtitle">Join TamAi v3</p>
+                </div>
+                
+                <form id="registerFormElement" class="form">
+                    <div class="form-group">
+                        <label for="registerUsername">Username</label>
+                        <input type="text" id="registerUsername" placeholder="your_username" required>
+                        <small>Lowercase, no spaces</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerDisplayName">Display Name</label>
+                        <input type="text" id="registerDisplayName" placeholder="Your Full Name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerEmail">Email Address</label>
+                        <input type="email" id="registerEmail" placeholder="your@email.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" placeholder="••••••••" required>
+                        <small>Minimum 6 characters</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Continue to OTP</button>
+                </form>
+                
+                <button class="btn btn-secondary" onclick="switchAuthForm('loginForm')">Back to Login</button>
+            </div>
+
+            <!-- OTP VERIFICATION FORM -->
+            <div id="otpForm" class="auth-form">
+                <div class="auth-header">
+                    <h2>Verify OTP</h2>
+                    <p class="subtitle">Check your email for the code</p>
+                </div>
+                
+                <div id="otpEmailDisplay" class="otp-email-display"></div>
+                
+                <form id="otpFormElement" class="form">
+                    <div class="form-group">
+                        <label for="otpCode">Enter OTP Code</label>
+                        <div class="otp-input-group">
+                            <input type="text" id="otpCode" maxlength="6" placeholder="000000" required class="otp-input">
+                        </div>
+                        <small>6-digit code from your email</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Verify OTP</button>
+                </form>
+                
+                <div class="otp-resend">
+                    <button type="button" id="resendOtpBtn" class="btn btn-text">Resend OTP</button>
+                </div>
+            </div>
+
+            <!-- PROFILE PICTURE FORM -->
+            <div id="profilePicForm" class="auth-form">
+                <div class="auth-header">
+                    <h2>Profile Picture</h2>
+                    <p class="subtitle">Complete your profile</p>
+                </div>
+                
+                <div class="profile-pic-container">
+                    <div id="profilePicPreview" class="profile-pic-preview">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <p id="profilePicFileName" class="profile-pic-filename">No image selected</p>
+                </div>
+                
+                <form id="profilePicFormElement" class="form">
+                    <div class="form-group">
+                        <input type="file" id="profilePicInput" accept="image/*" required>
+                        <label for="profilePicInput" class="file-input-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Click to select or drag image
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Complete Setup</button>
+                </form>
+
+                <div class="profile-pic-option">
+                    <button type="button" class="btn btn-secondary" onclick="skipProfilePic()">Skip for Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="app-container hidden">
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="app-title">TamAi</h1>
+                <button id="sidebarToggleClose" class="sidebar-toggle-mobile" aria-label="Close sidebar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <button id="newChatBtn" class="new-chat-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                New Chat
+            </button>
+
+            <div class="chat-history">
+                <div id="chatListContainer"></div>
+            </div>
+
+            <!-- STICKY PROFILE SECTION -->
+            <div class="sidebar-footer">
+                <div id="profileSection" class="profile-section">
+                    <div id="profileAvatar" class="profile-avatar">
+                        <img id="profileAvatarImg" src="" alt="Profile">
+                    </div>
+                    <div class="profile-info">
+                        <div id="profileDisplayName" class="profile-name"></div>
+                        <div id="profileUsername" class="profile-handle"></div>
+                    </div>
+                    <button id="profileMenuBtn" class="profile-menu-btn" aria-label="Profile menu">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="12" cy="5" r="2"></circle>
+                            <circle cx="12" cy="12" r="2"></circle>
+                            <circle cx="12" cy="19" r="2"></circle>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- PROFILE POPUP MENU -->
+                <div id="profileMenu" class="profile-menu hidden">
+                    <button id="settingsBtn" class="profile-menu-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path>
+                        </svg>
+                        Pengaturan
+                    </button>
+                    <button id="logoutBtn" class="profile-menu-item logout">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- CHAT AREA -->
+            <div id="chatArea" class="chat-area">
+                <div id="messagesContainer" class="messages-container">
+                    <!-- WELCOME MESSAGE -->
+                    <div id="welcomeMessage" class="welcome-section">
+                        <div class="welcome-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                                <path d="M12 6v6l4.25 2.5"></path>
+                            </svg>
+                        </div>
+                        <h2>Welcome to TamAi v3</h2>
+                        <p>Start a conversation with your AI assistant</p>
+                    </div>
+                </div>
+
+                <!-- ATTACHMENT PREVIEW -->
+                <div id="attachmentPreview" class="attachment-preview hidden">
+                    <div class="attachment-items" id="attachmentItems"></div>
+                    <button id="clearAttachmentsBtn" class="clear-attachments-btn" type="button">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- INPUT AREA -->
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <button id="attachBtn" class="attach-btn" type="button" aria-label="Attach file">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+                            </svg>
+                        </button>
+                        
+                        <input 
+                            type="file" 
+                            id="fileInput" 
+                            multiple 
+                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
+                            class="hidden-file-input"
+                        >
+                        
+                        <input 
+                            type="text" 
+                            id="messageInput" 
+                            class="message-input" 
+                            placeholder="Ketik pesan atau tanya AI..."
+                            autocomplete="off"
+                        >
+                        
+                        <button id="sendBtn" class="send-btn" type="button" aria-label="Send message">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 L4.13399899,1.16127562 C3.34915502,0.9041282 2.40734225,1.01519233 1.77946707,1.4865022 C0.994623095,2.11185309 0.837654326,3.0544372 1.15159189,3.84009196 L3.03521743,10.4127532 C3.03521743,10.5698506 3.34915502,10.7269479 3.50612381,10.7269479 L16.6915026,11.5124348 C16.6915026,11.5124348 17.1624089,11.5124348 17.1624089,12.0 C17.1624089,12.4744748 16.6915026,12.4744748 16.6915026,12.4744748 Z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- SETTINGS MODAL -->
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Pengaturan</h2>
+                    <button id="closeSettingsModal" class="close-btn" type="button">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h3>Account Information</h3>
+                        <div class="settings-item">
+                            <label>Username</label>
+                            <p id="settingsUsername"></p>
+                        </div>
+                        <div class="settings-item">
+                            <label>Display Name</label>
+                            <p id="settingsDisplayName"></p>
+                        </div>
+                        <div class="settings-item">
+                            <label>Email</label>
+                            <p id="settingsEmail"></p>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Aplikasi</h3>
+                        <div class="settings-item">
+                            <label>Versi</label>
+                            <p>TamAi v3</p>
+                        </div>
+                        <div class="settings-item">
+                            <label>Ditingkatkan Terakhir</label>
+                            <p id="lastUpdated">Januari 2026</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING SPINNER -->
+    <div id="loadingSpinner" class="loading-spinner hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
