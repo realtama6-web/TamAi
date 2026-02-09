@@ -1,1326 +1,502 @@
-/* ========================================
-   TAMAI v3 - COMPLETE VANILLA JAVASCRIPT
-   ======================================== */
+/* TamAi v3 - Cleaned script.js
+   - Enter in textarea sends message to AI
+   - OpenRouter API key is used directly
+   - Chats stored per-user in localStorage under key 'chats_<email>'
+   - OTP sent via SMTPJS direct (Username/Password)
+   - Loading spinner shown while AI processing
+   - Console logs for OTP sending
+*/
 
-/* ========================================
-   CONSTANTS & CONFIGURATION
-   ======================================== */
-
-// API Configuration
+// Configuration
 const OPENROUTER_API_KEY = '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';
 const OPENROUTER_API_URL = 'https://openrouter.io/api/v1/chat/completions';
 
-// SMTPJS Configuration - OTP Email Real
-const SMTP_CONFIG = {
-    email: 'tamaidev.id@gmail.com',
-    appPassword: 'lehu vofk wrqp rgnp',
-    // SecureToken untuk keamanan app password
-    secureToken: 'f3c88682-1437-4340-9a2c-f67f62088f1a'
+const SMTP_DIRECT = {
+  Host: 'smtp.gmail.com',
+  Username: 'tamaidev.id@gmail.com',
+  Password: 'lehu vofk wrqp rgnp'
 };
 
-// Storage Keys
-const STORAGE_KEYS = {
-    USER_DATA: 'tamai_user_data',
-    IS_LOGGED_IN: 'tamai_is_logged_in',
-    CHATS: 'tamai_chats',
-    CURRENT_CHAT_ID: 'tamai_current_chat_id'
+// App state
+const appState = {
+  isLoggedIn: false,
+  currentUser: null, // { username, displayName, email, password, profilePic }
+  chats: {},
+  currentChatId: null
 };
 
-// OTP Configuration
-const OTP_LENGTH = 6;
-const OTP_TIMEOUT = 300; // 5 menit dalam detik
-
-/* ========================================
-   APPLICATION STATE
-   ======================================== */
-
-let appState = {
-    isLoggedIn: false,
-    currentUser: null,
-    currentChatId: null,
-    chats: {},
-    sidebarOpen: true,
-    profileMenuOpen: false
-};
-
-/* ========================================
-   DOM ELEMENTS CACHE
-   ======================================== */
-
+// DOM cache (cover main IDs present in index.html)
 const DOM = {
-    // Auth Modal Elements
-    authModal: document.getElementById('authModal'),
-    loginForm: document.getElementById('loginForm'),
-    registerForm: document.getElementById('registerForm'),
-    otpForm: document.getElementById('otpForm'),
-    profilePicForm: document.getElementById('profilePicForm'),
-
-    // Form Elements
-    loginFormElement: document.getElementById('loginFormElement'),
-    registerFormElement: document.getElementById('registerFormElement'),
-    otpFormElement: document.getElementById('otpFormElement'),
-    profilePicFormElement: document.getElementById('profilePicFormElement'),
-
-    // Input Fields
-    loginEmail: document.getElementById('loginEmail'),
-    loginPassword: document.getElementById('loginPassword'),
-    registerUsername: document.getElementById('registerUsername'),
-    registerDisplayName: document.getElementById('registerDisplayName'),
-    registerEmail: document.getElementById('registerEmail'),
-    registerPassword: document.getElementById('registerPassword'),
-    otpCode: document.getElementById('otpCode'),
-    messageInput: document.getElementById('messageInput'),
-    fileInput: document.getElementById('fileInput'),
-
-    // Main App Elements
-    mainApp: document.getElementById('mainApp'),
-    sidebar: document.getElementById('sidebar'),
-    sidebarToggleClose: document.getElementById('sidebarToggleClose'),
-    newChatBtn: document.getElementById('newChatBtn'),
-    chatListContainer: document.getElementById('chatListContainer'),
-    messagesContainer: document.getElementById('messagesContainer'),
-    welcomeMessage: document.getElementById('welcomeMessage'),
-
-    // Buttons
-    sendBtn: document.getElementById('sendBtn'),
-    attachBtn: document.getElementById('attachBtn'),
-    resendOtpBtn: document.getElementById('resendOtpBtn'),
-    profileMenuBtn: document.getElementById('profileMenuBtn'),
-    profileSection: document.getElementById('profileSection'),
-    settingsBtn: document.getElementById('settingsBtn'),
-    logoutBtn: document.getElementById('logoutBtn'),
-
-    // Profile Elements
-    profileMenu: document.getElementById('profileMenu'),
-    profileAvatar: document.getElementById('profileAvatar'),
-    profileAvatarImg: document.getElementById('profileAvatarImg'),
-    profileDisplayName: document.getElementById('profileDisplayName'),
-    profileUsername: document.getElementById('profileUsername'),
-
-    // Profile Picture Form
-    profilePicInput: document.getElementById('profilePicInput'),
-    profilePicPreview: document.getElementById('profilePicPreview'),
-    profilePicFileName: document.getElementById('profilePicFileName'),
-
-    // Attachment Elements
-    attachmentPreview: document.getElementById('attachmentPreview'),
-    attachmentItems: document.getElementById('attachmentItems'),
-    clearAttachmentsBtn: document.getElementById('clearAttachmentsBtn'),
-
-    // OTP Elements
-    otpEmailDisplay: document.getElementById('otpEmailDisplay'),
-
-    // Settings Modal
-    settingsModal: document.getElementById('settingsModal'),
-    closeSettingsModal: document.getElementById('closeSettingsModal'),
-    settingsUsername: document.getElementById('settingsUsername'),
-    settingsDisplayName: document.getElementById('settingsDisplayName'),
-    settingsEmail: document.getElementById('settingsEmail'),
-
-    // Loading Spinner
-    loadingSpinner: document.getElementById('loadingSpinner')
+  authModal: document.getElementById('authModal'),
+  loginFormElement: document.getElementById('loginFormElement'),
+  registerFormElement: document.getElementById('registerFormElement'),
+  otpFormElement: document.getElementById('otpFormElement'),
+  profilePicFormElement: document.getElementById('profilePicFormElement'),
+  loginEmail: document.getElementById('loginEmail'),
+  loginPassword: document.getElementById('loginPassword'),
+  registerUsername: document.getElementById('registerUsername'),
+  registerDisplayName: document.getElementById('registerDisplayName'),
+  registerEmail: document.getElementById('registerEmail'),
+  registerPassword: document.getElementById('registerPassword'),
+  otpCode: document.getElementById('otpCode'),
+  otpEmailDisplay: document.getElementById('otpEmailDisplay'),
+  profilePicInput: document.getElementById('profilePicInput'),
+  profilePicPreview: document.getElementById('profilePicPreview'),
+  profilePicFileName: document.getElementById('profilePicFileName'),
+  mainApp: document.getElementById('mainApp'),
+  newChatBtn: document.getElementById('newChatBtn'),
+  chatListContainer: document.getElementById('chatListContainer'),
+  messagesContainer: document.getElementById('messagesContainer'),
+  welcomeMessage: document.getElementById('welcomeMessage'),
+  messageInput: document.getElementById('messageInput'),
+  sendBtn: document.getElementById('sendBtn'),
+  loadingSpinner: document.getElementById('loadingSpinner'),
+  resendOtpBtn: document.getElementById('resendOtpBtn'),
+  bypassDevBtn: document.getElementById('bypassDevBtn'),
+  attachBtn: document.getElementById('attachBtn'),
+  fileInput: document.getElementById('fileInput'),
+  attachmentPreview: document.getElementById('attachmentPreview'),
+  attachmentItems: document.getElementById('attachmentItems'),
+  clearAttachmentsBtn: document.getElementById('clearAttachmentsBtn'),
+  profileMenu: document.getElementById('profileMenu'),
+  profileSection: document.getElementById('profileSection'),
+  profileMenuBtn: document.getElementById('profileMenuBtn'),
+  profileAvatar: document.getElementById('profileAvatar'),
+  profileAvatarImg: document.getElementById('profileAvatarImg'),
+  profileDisplayName: document.getElementById('profileDisplayName'),
+  profileUsername: document.getElementById('profileUsername'),
+  settingsBtn: document.getElementById('settingsBtn'),
+  logoutBtn: document.getElementById('logoutBtn'),
+  settingsModal: document.getElementById('settingsModal'),
+  closeSettingsModal: document.getElementById('closeSettingsModal'),
+  settingsUsername: document.getElementById('settingsUsername'),
+  settingsDisplayName: document.getElementById('settingsDisplayName'),
+  settingsEmail: document.getElementById('settingsEmail'),
+  sidebar: document.getElementById('sidebar'),
+  sidebarToggleClose: document.getElementById('sidebarToggleClose')
 };
 
-/* ========================================
-   INITIALIZATION & EVENT LISTENERS
-   ======================================== */
+const OTP_LENGTH = 6;
+const OTP_TIMEOUT_MS = 5 * 60 * 1000;
 
+/* ---------- Initialization ---------- */
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
-    setupEventListeners();
-    checkAuthStatus();
+  loadUserFromStorage();
+  bindEvents();
+  if (appState.isLoggedIn) {
+    showMainApp();
+    loadChatsForCurrentUser();
+  } else {
+    showAuthModal();
+  }
 });
 
-function initializeApp() {
-    loadUserDataFromStorage();
-    
-    if (appState.isLoggedIn) {
-        showMainApp();
-        loadChatsFromStorage();
-    } else {
-        showAuthModal();
-    }
-}
+/* ---------- Events ---------- */
+function bindEvents() {
+  if (DOM.loginFormElement) DOM.loginFormElement.addEventListener('submit', handleLogin);
+  if (DOM.registerFormElement) DOM.registerFormElement.addEventListener('submit', handleRegister);
+  if (DOM.otpFormElement) DOM.otpFormElement.addEventListener('submit', handleOTPVerification);
+  if (DOM.profilePicFormElement) DOM.profilePicFormElement.addEventListener('submit', handleProfilePicUpload);
+  if (DOM.resendOtpBtn) DOM.resendOtpBtn.addEventListener('click', resendOTP);
+  if (DOM.bypassDevBtn) DOM.bypassDevBtn.addEventListener('click', bypassOTPForDev);
 
-function setupEventListeners() {
-    // Auth Form Events
-    DOM.loginFormElement.addEventListener('submit', handleLogin);
-    DOM.registerFormElement.addEventListener('submit', handleRegister);
-    DOM.otpFormElement.addEventListener('submit', handleOTPVerification);
-    DOM.profilePicFormElement.addEventListener('submit', handleProfilePicUpload);
-
-    // Chat Events
-    DOM.newChatBtn.addEventListener('click', createNewChat);
-    DOM.sendBtn.addEventListener('click', sendMessage);
+  if (DOM.newChatBtn) DOM.newChatBtn.addEventListener('click', createNewChat);
+  if (DOM.sendBtn) DOM.sendBtn.addEventListener('click', sendMessage);
+  if (DOM.messageInput) {
     DOM.messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
     });
     DOM.messageInput.addEventListener('input', adjustTextareaHeight);
+  }
 
-    // Attachment Events
-    DOM.attachBtn.addEventListener('click', () => DOM.fileInput.click());
-    DOM.fileInput.addEventListener('change', handleFileSelection);
-    DOM.clearAttachmentsBtn.addEventListener('click', clearAttachments);
+  if (DOM.attachBtn) DOM.attachBtn.addEventListener('click', () => DOM.fileInput && DOM.fileInput.click());
+  if (DOM.fileInput) DOM.fileInput.addEventListener('change', handleFileSelection);
+  if (DOM.clearAttachmentsBtn) DOM.clearAttachmentsBtn.addEventListener('click', clearAttachments);
 
-    // Profile Menu Events
-    DOM.profileMenuBtn.addEventListener('click', toggleProfileMenu);
-    DOM.profileSection.addEventListener('click', (e) => {
-        if (!e.target.closest('.profile-menu-btn')) {
-            // Click on profile section (not menu button)
-        }
-    });
-    DOM.settingsBtn.addEventListener('click', openSettings);
-    DOM.logoutBtn.addEventListener('click', handleLogout);
-    DOM.closeSettingsModal.addEventListener('click', closeSettings);
+  if (DOM.profileMenuBtn) DOM.profileMenuBtn.addEventListener('click', toggleProfileMenu);
+  if (DOM.settingsBtn) DOM.settingsBtn.addEventListener('click', openSettings);
+  if (DOM.logoutBtn) DOM.logoutBtn.addEventListener('click', handleLogout);
+  if (DOM.closeSettingsModal) DOM.closeSettingsModal.addEventListener('click', closeSettings);
 
-    // Sidebar Toggle Events
-    DOM.sidebarToggleClose.addEventListener('click', toggleSidebar);
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.profile-section') && !e.target.closest('.profile-menu')) {
+      DOM.profileMenu && DOM.profileMenu.classList.add('hidden');
+    }
+  });
 
-    // OTP Resend
-    DOM.resendOtpBtn.addEventListener('click', resendOTP);
-
-    // Profile Picture Upload
-    DOM.profilePicInput.addEventListener('change', handleProfilePicPreview);
-
-    // Close profile menu when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.profile-section') && !e.target.closest('.profile-menu')) {
-            DOM.profileMenu.classList.add('hidden');
-            appState.profileMenuOpen = false;
-        }
-    });
-
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', (e) => {
-        if (window.innerWidth <= 768) {
-            const sidebarArea = e.target.closest('.sidebar') || e.target.closest('.sidebar-toggle-mobile');
-            const mainContent = e.target.closest('.main-content');
-            
-            if (mainContent && appState.sidebarOpen) {
-                DOM.sidebar.classList.remove('active');
-                appState.sidebarOpen = false;
-            }
-        }
-    });
-
-    // Responsive sidebar on resize
-    window.addEventListener('resize', () => {
-        if (window.innerWidth > 768) {
-            DOM.sidebar.classList.remove('active');
-            appState.sidebarOpen = true;
-        }
-    });
-
-    // Close settings modal when clicking outside
-    DOM.settingsModal.addEventListener('click', (e) => {
-        if (e.target === DOM.settingsModal) {
-            closeSettings();
-        }
-    });
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768 && DOM.sidebar) DOM.sidebar.classList.remove('active');
+  });
 }
 
-/* ========================================
-   AUTHENTICATION FUNCTIONS
-   ======================================== */
+/* ---------- Users & Storage ---------- */
+function getAllUsersFromStorage() {
+  const raw = localStorage.getItem('tamai_all_users');
+  return raw ? JSON.parse(raw) : [];
+}
+
+function saveAllUsersToStorage(users) {
+  localStorage.setItem('tamai_all_users', JSON.stringify(users));
+}
+
+function saveCurrentUser(user) {
+  localStorage.setItem('tamai_current_user', JSON.stringify(user));
+  localStorage.setItem('tamai_is_logged_in', 'true');
+}
+
+function loadUserFromStorage() {
+  const logged = localStorage.getItem('tamai_is_logged_in') === 'true';
+  const raw = localStorage.getItem('tamai_current_user');
+  if (logged && raw) {
+    appState.currentUser = JSON.parse(raw);
+    appState.isLoggedIn = true;
+  }
+}
+
+/* ---------- Auth Handlers ---------- */
+function handleLogin(e) {
+  e.preventDefault();
+  const email = (DOM.loginEmail && DOM.loginEmail.value || '').trim().toLowerCase();
+  const password = (DOM.loginPassword && DOM.loginPassword.value || '').trim();
+  if (!email || !password) return showNotification('Email dan password harus diisi', 'error');
+
+  const users = getAllUsersFromStorage();
+  const user = users.find(u => u.email === email);
+  if (!user || user.password !== password) return showNotification('Email atau password salah', 'error');
+
+  appState.currentUser = user; appState.isLoggedIn = true;
+  saveCurrentUser(user);
+  loadChatsForCurrentUser();
+  showMainApp();
+  showNotification('✅ Login berhasil!', 'success');
+}
+
+function handleRegister(e) {
+  e.preventDefault();
+  const username = (DOM.registerUsername && DOM.registerUsername.value || '').trim();
+  const displayName = (DOM.registerDisplayName && DOM.registerDisplayName.value || '').trim();
+  const email = (DOM.registerEmail && DOM.registerEmail.value || '').trim().toLowerCase();
+  const password = (DOM.registerPassword && DOM.registerPassword.value || '').trim();
+
+  if (!username || !displayName || !email || !password) return showNotification('Semua field harus diisi', 'error');
+  if (password.length < 6) return showNotification('Password minimal 6 karakter', 'error');
+
+  const users = getAllUsersFromStorage();
+  if (users.some(u => u.email === email || u.username === username)) return showNotification('Email atau username sudah terdaftar', 'error');
+
+  const tempUser = { username, displayName, email, password };
+  sessionStorage.setItem('tamai_temp_user', JSON.stringify(tempUser));
+
+  switchAuthForm('otpForm');
+  DOM.otpEmailDisplay && (DOM.otpEmailDisplay.textContent = `📧 Kode OTP akan dikirim ke ${email}`);
+  generateAndSendOTP(email);
+}
 
 function switchAuthForm(formId) {
-    // Hide all forms
-    document.querySelectorAll('.auth-form').forEach(form => {
-        form.classList.remove('active');
-    });
-    
-    // Show selected form
-    document.getElementById(formId).classList.add('active');
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  const el = document.getElementById(formId);
+  if (el) el.classList.add('active');
 }
 
-async function handleLogin(e) {
-    e.preventDefault();
-    
-    const email = DOM.loginEmail.value.trim();
-    const password = DOM.loginPassword.value.trim();
-    
-    if (!email || !password) {
-        showNotification('Email dan Password harus diisi', 'error');
-        return;
-    }
-    
-    // Simulate login (any email/password works)
-    // In production, this would call a backend API
-    const users = getAllUsersFromStorage();
-    const user = users.find(u => u.email === email || u.username === email);
-    
-    if (user && user.password === password) {
-        appState.currentUser = user;
-        appState.isLoggedIn = true;
-        saveUserDataToStorage(user);
-        showMainApp();
-        loadChatsFromStorage();
-        resetAuthForms();
-        showNotification('✅ Login berhasil!', 'success');
-    } else {
-        showNotification('❌ Email/Username atau Password salah', 'error');
-    }
-}
-
-async function handleRegister(e) {
-    e.preventDefault();
-    
-    const username = DOM.registerUsername.value.trim();
-    const displayName = DOM.registerDisplayName.value.trim();
-    const email = DOM.registerEmail.value.trim();
-    const password = DOM.registerPassword.value.trim();
-    
-    if (!username || !displayName || !email || !password) {
-        showNotification('Semua field harus diisi', 'error');
-        return;
-    }
-    
-    if (password.length < 6) {
-        showNotification('Password minimal 6 karakter', 'error');
-        return;
-    }
-    
-    // Check if user already exists
-    const users = getAllUsersFromStorage();
-    if (users.some(u => u.email === email || u.username === username)) {
-        showNotification('Email atau Username sudah terdaftar', 'error');
-        return;
-    }
-    
-    // Proceed to OTP verification
-    const tempUser = {
-        username,
-        displayName,
-        email,
-        password
-    };
-    
-    sessionStorage.setItem('tamai_temp_user', JSON.stringify(tempUser));
-    
-    // Switch to OTP form
-    switchAuthForm('otpForm');
-    DOM.otpEmailDisplay.textContent = `📧 Kode OTP telah dikirim ke ${email}`;
-    DOM.otpCode.value = '';
-    
-    // Generate and send OTP
-    generateAndSendOTP(email);
-}
-
-// Fungsi untuk mengirimkan OTP ke email menggunakan SMTPJS dengan SecureToken
+/* ---------- OTP via SMTPJS (direct) ---------- */
 async function sendEmailOTP(targetEmail, code) {
-    const senderEmail = SMTP_CONFIG.email; // tamaidev.id@gmail.com
-    
-    // Format pesan email yang keren dengan styling
-    const emailSubject = 'Kode Verifikasi TamAi v3 - Tuan';
-    const emailBody = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa;">
-            <div style="background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); padding: 40px 30px; border-radius: 12px 12px 0 0; text-align: center; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                <h1 style="margin: 0; font-size: 36px; font-weight: 800; letter-spacing: -1px;">TamAi v3</h1>
-                <p style="margin: 8px 0 0 0; opacity: 0.95; font-size: 14px; font-weight: 500;">Smart Chat Assistant</p>
-            </div>
-            <div style="background: white; padding: 40px 30px; border-radius: 0 0 12px 12px;">
-                <h2 style="color: #1e293b; margin: 0 0 20px 0; font-size: 24px; font-weight: 700;">Kode Verifikasi Anda</h2>
-                
-                <p style="color: #475569; line-height: 1.8; margin: 0 0 30px 0; font-size: 15px;">
-                    Selamat datang di <strong>TamAi v3</strong>! 👋<br>
-                    Gunakan kode verifikasi di bawah ini untuk menyelesaikan proses pendaftaran akun Anda:
-                </p>
-                
-                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 30px; border-radius: 10px; margin: 0 0 30px 0; border-left: 4px solid #0ea5e9; text-align: center;">
-                    <p style="margin: 0 0 12px 0; color: #64748b; text-transform: uppercase; letter-spacing: 2px; font-size: 12px; font-weight: 600;">Kode Verifikasi 6 Digit</p>
-                    <p style="margin: 0; font-size: 52px; font-weight: 900; color: #0ea5e9; letter-spacing: 12px; font-family: 'Courier New', monospace; tracking: 10px;">${code}</p>
-                </div>
-                
-                <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin: 0 0 30px 0;">
-                    <p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">
-                        <strong>⏱️ Perhatian:</strong> Kode verifikasi akan berlaku selama <strong>5 menit</strong>. Jika waktu habis, Anda dapat meminta kode baru.<br>
-                        <strong>🔒 Keamanan:</strong> Jangan bagikan kode ini kepada siapa pun, termasuk tim support TamAi.
-                    </p>
-                </div>
-                
-                <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
-                    <p style="color: #94a3b8; font-size: 12px; line-height: 1.6; margin: 0;">
-                        Jika Anda tidak meminta kode verifikasi ini, abaikan email ini.<br>
-                        Pertanyaan? Hubungi kami di <a href="mailto:support@tamai.io" style="color: #0ea5e9; text-decoration: none;">support@tamai.io</a>
-                    </p>
-                </div>
-            </div>
-            <div style="background: #1e293b; padding: 20px 30px; text-align: center; color: #cbd5e1; border-radius: 0 0 12px 12px; font-size: 12px; line-height: 1.6;">
-                <p style="margin: 0 0 8px 0;">© 2026 TamAi. All rights reserved.</p>
-                <p style="margin: 0; opacity: 0.8;">Smart Chat Assistant Platform</p>
-            </div>
-        </div>
-    `;
-    
-    return new Promise((resolve, reject) => {
-        try {
-            // Menggunakan SMTPJS untuk mengirim email OTP
-            // Dengan SecureToken untuk keamanan App Password
-            Email.send({
-                Host: "smtp.gmail.com",
-                Username: senderEmail,
-                Password: SMTP_CONFIG.appPassword,
-                SecureToken: SMTP_CONFIG.secureToken,
-                To: targetEmail,
-                From: senderEmail,
-                Subject: emailSubject,
-                html: emailBody,
-                port: 465,
-                secure: true
-            }).then(
-                function(message) {
-                    console.log('✅ Email OTP berhasil dikirim!');
-                    console.log('📧 Penerima: ' + targetEmail);
-                    console.log('📨 Response: ' + message);
-                    resolve(true);
-                }
-            ).catch(
-                function(error) {
-                    console.error('❌ Gagal mengirim email OTP:', error);
-                    reject(error);
-                }
-            );
-        } catch (error) {
-            console.error('❌ Error dalam fungsi sendEmailOTP:', error);
-            reject(error);
-        }
+  try {
+    await Email.send({
+      Host: SMTP_DIRECT.Host,
+      Username: SMTP_DIRECT.Username,
+      Password: SMTP_DIRECT.Password,
+      To: targetEmail,
+      From: SMTP_DIRECT.Username,
+      Subject: 'OTP TamAi v3',
+      Body: 'Kode lo adalah ' + code
     });
+
+    console.log('✅ Email OTP berhasil dikirim!');
+    console.log('OTP TERKIRIM KE:', targetEmail);
+    return true;
+  } catch (err) {
+    console.error('❌ Gagal mengirim email OTP:', err);
+    return false;
+  }
 }
 
 async function generateAndSendOTP(email) {
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Store OTP in session storage with timestamp
-    sessionStorage.setItem('tamai_otp', otp);
-    sessionStorage.setItem('tamai_otp_timestamp', Date.now().toString());
-    
-    console.log('📨 Generating OTP untuk email: ' + email);
-    console.log('🔐 Kode OTP yang dihasilkan: ' + otp);
-    
-    try {
-        // Panggil fungsi sendEmailOTP untuk mengirim email sesungguhnya
-        console.log('📧 Sedang mengirimkan kode OTP via SMTPJS...');
-        const emailSent = await sendEmailOTP(email, otp);
-        
-        if (emailSent) {
-            console.log('✅ OTP berhasil dikirim ke email: ' + email);
-            console.log('🔐 Kode OTP valid selama 5 menit');
-            
-            // Show success notification
-            showNotification('📧 Kode OTP berhasil dikirim! Cek email Anda.', 'success');
-        }
-    } catch (error) {
-        console.error('❌ Error mengirim OTP:', error);
-        showNotification('⚠️ Gagal mengirim email. Periksa koneksi internet Anda.', 'error');
-    }
-}
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  sessionStorage.setItem('tamai_otp', otp);
+  sessionStorage.setItem('tamai_otp_ts', Date.now().toString());
+  console.log('📨 Generating OTP untuk', email, '->', otp);
 
-function showNotification(message, type = 'info') {
-    const notif = document.createElement('div');
-    notif.className = `notification notification-${type}`;
-    notif.textContent = message;
-    notif.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 16px 24px;
-        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        animation: slideIn 0.3s ease-out;
-    `;
-    document.body.appendChild(notif);
-    
-    setTimeout(() => {
-        notif.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => notif.remove(), 300);
-    }, 3000);
-}
-
-
-async function handleOTPVerification(e) {
-    e.preventDefault();
-    
-    const enteredOTP = DOM.otpCode.value.trim();
-    const storedOTP = sessionStorage.getItem('tamai_otp');
-    const otpTimestamp = parseInt(sessionStorage.getItem('tamai_otp_timestamp'));
-    
-    if (!enteredOTP || enteredOTP.length !== OTP_LENGTH) {
-        showNotification('⚠️ OTP harus 6 digit', 'error');
-        return;
-    }
-    
-    if (enteredOTP !== storedOTP) {
-        showNotification('❌ OTP yang Anda masukkan salah', 'error');
-        return;
-    }
-    
-    // Check OTP timeout (5 menit)
-    const currentTime = Date.now();
-    if ((currentTime - otpTimestamp) > (OTP_TIMEOUT * 1000)) {
-        showNotification('⏱️ OTP sudah kadaluarsa. Silakan request OTP baru', 'error');
-        return;
-    }
-    
-    // OTP verified, proceed to profile picture upload
-    const tempUser = JSON.parse(sessionStorage.getItem('tamai_temp_user'));
-    sessionStorage.setItem('tamai_verified_user', JSON.stringify(tempUser));
-    
-    // Clear OTP data
-    sessionStorage.removeItem('tamai_otp');
-    sessionStorage.removeItem('tamai_otp_timestamp');
-    sessionStorage.removeItem('tamai_temp_user');
-    sessionStorage.removeItem('tamai_otp_retry_count');
-    
-    showNotification('✅ OTP verifikasi berhasil!', 'success');
-    switchAuthForm('profilePicForm');
-    DOM.otpCode.value = '';
+  const sent = await sendEmailOTP(email, otp);
+  if (sent) {
+    showNotification('📧 Kode OTP telah dikirim. Cek email Anda.', 'success');
+  } else {
+    showNotification('⚠️ Gagal mengirim OTP. Periksa konfigurasi SMTP.', 'error');
+  }
 }
 
 function resendOTP() {
-    const tempUser = JSON.parse(sessionStorage.getItem('tamai_temp_user'));
-    if (tempUser) {
-        generateAndSendOTP(tempUser.email);
-    }
+  const temp = sessionStorage.getItem('tamai_temp_user');
+  if (!temp) return showNotification('Tidak ada proses pendaftaran aktif', 'error');
+  const user = JSON.parse(temp);
+  generateAndSendOTP(user.email);
+}
+
+async function handleOTPVerification(e) {
+  e.preventDefault();
+  const entered = (DOM.otpCode && DOM.otpCode.value || '').trim();
+  const stored = sessionStorage.getItem('tamai_otp');
+  const ts = parseInt(sessionStorage.getItem('tamai_otp_ts') || '0', 10);
+
+  if (!entered || entered.length !== OTP_LENGTH) return showNotification('OTP harus 6 digit', 'error');
+  if (Date.now() - ts > OTP_TIMEOUT_MS) return showNotification('OTP kadaluarsa', 'error');
+  if (entered !== stored) return showNotification('OTP salah', 'error');
+
+  const tempUser = JSON.parse(sessionStorage.getItem('tamai_temp_user') || 'null');
+  if (!tempUser) return showNotification('User sementara tidak ditemukan', 'error');
+
+  // save user
+  const users = getAllUsersFromStorage();
+  users.push(tempUser);
+  saveAllUsersToStorage(users);
+
+  // login
+  appState.currentUser = tempUser; appState.isLoggedIn = true;
+  saveCurrentUser(tempUser);
+
+  sessionStorage.removeItem('tamai_temp_user');
+  sessionStorage.removeItem('tamai_otp');
+  sessionStorage.removeItem('tamai_otp_ts');
+
+  loadChatsForCurrentUser();
+  showMainApp();
+  showNotification('✅ Akun dibuat dan login berhasil', 'success');
+}
+
+function bypassOTPForDev() {
+  const tempUser = JSON.parse(sessionStorage.getItem('tamai_temp_user') || 'null');
+  if (!tempUser) return showNotification('User sementara tidak ditemukan', 'error');
+
+  // save user
+  const users = getAllUsersFromStorage();
+  users.push(tempUser);
+  saveAllUsersToStorage(users);
+
+  // login
+  appState.currentUser = tempUser;
+  appState.isLoggedIn = true;
+  saveCurrentUser(tempUser);
+
+  sessionStorage.removeItem('tamai_temp_user');
+  sessionStorage.removeItem('tamai_otp');
+  sessionStorage.removeItem('tamai_otp_ts');
+
+  loadChatsForCurrentUser();
+  showMainApp();
+  showNotification('✅ Development bypass - akun langsung aktif', 'success');
 }
 
 async function handleProfilePicUpload(e) {
-    e.preventDefault();
-    
-    const fileInput = DOM.profilePicInput;
-    const file = fileInput.files[0];
-    
-    if (!file) {
-        showNotification('⚠️ Silakan pilih foto profil', 'error');
-        return;
-    }
-    
-    // Convert file to Base64
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const base64Image = event.target.result;
-        const verifiedUser = JSON.parse(sessionStorage.getItem('tamai_verified_user'));
-        
-        // Add profile picture to user data
-        verifiedUser.profilePic = base64Image;
-        
-        // Save user to storage
-        let users = getAllUsersFromStorage();
-        users.push(verifiedUser);
-        localStorage.setItem('tamai_all_users', JSON.stringify(users));
-        
-        // Log in the user
-        appState.currentUser = verifiedUser;
-        appState.isLoggedIn = true;
-        saveUserDataToStorage(verifiedUser);
-        
-        // Clear session data
-        sessionStorage.removeItem('tamai_verified_user');
-        
-        // Show main app
-        showMainApp();
-        loadChatsFromStorage();
-        resetAuthForms();
-        
-        showNotification('✅ Akun berhasil dibuat! Selamat datang!', 'success');
-    };
-    
-    reader.readAsDataURL(file);
-}
+  e.preventDefault();
+  const file = DOM.profilePicInput && DOM.profilePicInput.files[0];
+  if (!file) return showNotification('Pilih file terlebih dahulu', 'error');
 
-function skipProfilePic() {
-    const verifiedUser = JSON.parse(sessionStorage.getItem('tamai_verified_user'));
-    
-    // Set default avatar
-    verifiedUser.profilePic = null;
-    
-    // Save user to storage
-    let users = getAllUsersFromStorage();
-    users.push(verifiedUser);
-    localStorage.setItem('tamai_all_users', JSON.stringify(users));
-    
-    // Log in the user
-    appState.currentUser = verifiedUser;
-    appState.isLoggedIn = true;
-    saveUserDataToStorage(verifiedUser);
-    
-    // Clear session data
-    sessionStorage.removeItem('tamai_verified_user');
-    
-    // Show main app
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;
+    appState.currentUser.profilePic = dataUrl;
+    const users = getAllUsersFromStorage();
+    const idx = users.findIndex(u => u.email === appState.currentUser.email);
+    if (idx >= 0) { users[idx] = appState.currentUser; saveAllUsersToStorage(users); }
+    saveCurrentUser(appState.currentUser);
+    DOM.profilePicFileName && (DOM.profilePicFileName.textContent = file.name);
     showMainApp();
-    loadChatsFromStorage();
-    resetAuthForms();
+  };
+  reader.readAsDataURL(file);
 }
 
-function handleProfilePicPreview(e) {
-    const file = e.target.files[0];
-    
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = document.createElement('img');
-            img.src = event.target.result;
-            img.style.width = '100%';
-            img.style.height = '100%';
-            img.style.objectFit = 'cover';
-            
-            DOM.profilePicPreview.innerHTML = '';
-            DOM.profilePicPreview.appendChild(img);
-            DOM.profilePicFileName.textContent = file.name;
-        };
-        
-        reader.readAsDataURL(file);
-    }
+/* ---------- Chats (per-user) ---------- */
+function chatsStorageKey(email) { return `chats_${email}`; }
+function saveChatsForCurrentUser() {
+  if (!appState.currentUser) return;
+  const key = chatsStorageKey(appState.currentUser.email);
+  localStorage.setItem(key, JSON.stringify(appState.chats));
+}
+function loadChatsForCurrentUser() {
+  appState.chats = {};
+  appState.currentChatId = null;
+  if (!appState.currentUser) return;
+  const raw = localStorage.getItem(chatsStorageKey(appState.currentUser.email));
+  if (raw) {
+    try { appState.chats = JSON.parse(raw); } catch (e) { appState.chats = {}; }
+  }
+  renderChatList();
+  if (appState.currentChatId) renderMessages();
 }
 
-/* ========================================
-   CHAT FUNCTIONS
-   ======================================== */
-
+/* ---------- Chat UI ---------- */
 function createNewChat() {
-    const chatId = 'chat_' + Date.now();
-    const newChat = {
-        id: chatId,
-        title: 'Chat Baru',
-        createdAt: new Date().toISOString(),
-        messages: []
-    };
-    
-    appState.chats[chatId] = newChat;
-    appState.currentChatId = chatId;
-    
-    saveChatsToStorage();
-    renderChatList();
-    clearMessages();
-    
-    // Close sidebar on mobile
-    if (window.innerWidth <= 768) {
-        DOM.sidebar.classList.remove('active');
-        appState.sidebarOpen = false;
-    }
+  const id = 'chat_' + Date.now();
+  appState.chats[id] = { id, title: 'Chat Baru', createdAt: new Date().toISOString(), messages: [] };
+  appState.currentChatId = id;
+  saveChatsForCurrentUser();
+  renderChatList();
+  renderMessages();
 }
 
 function selectChat(chatId) {
-    appState.currentChatId = chatId;
-    localStorage.setItem(STORAGE_KEYS.CURRENT_CHAT_ID, chatId);
-    renderChatList();
-    renderMessages();
-    
-    // Close sidebar on mobile
-    if (window.innerWidth <= 768) {
-        DOM.sidebar.classList.remove('active');
-        appState.sidebarOpen = false;
-    }
+  appState.currentChatId = chatId; saveChatsForCurrentUser(); renderMessages();
 }
 
 function deleteChat(chatId, e) {
-    e.stopPropagation();
-    
-    if (confirm('Yakin ingin menghapus chat ini?')) {
-        delete appState.chats[chatId];
-        
-        if (appState.currentChatId === chatId) {
-            const chatIds = Object.keys(appState.chats);
-            appState.currentChatId = chatIds.length > 0 ? chatIds[0] : null;
-        }
-        
-        saveChatsToStorage();
-        renderChatList();
-        
-        if (appState.currentChatId) {
-            renderMessages();
-        } else {
-            clearMessages();
-        }
-    }
-}
-
-async function sendMessage() {
-    const message = DOM.messageInput.value.trim();
-    const attachments = getAttachmentsList();
-    
-    if (!message && attachments.length === 0) {
-        return;
-    }
-    
-    if (!appState.currentChatId) {
-        createNewChat();
-    }
-    
-    const currentChat = appState.chats[appState.currentChatId];
-    if (!currentChat) {
-        return;
-    }
-    
-    // Add user message
-    const userMessage = {
-        id: 'msg_' + Date.now(),
-        type: 'user',
-        content: message,
-        attachments: attachments,
-        timestamp: new Date().toISOString()
-    };
-    
-    currentChat.messages.push(userMessage);
-    
-    // Auto-title: Update chat title with first message
-    if (currentChat.messages.length === 1 && message) {
-        const titleText = message.substring(0, 50) + (message.length > 50 ? '...' : '');
-        currentChat.title = titleText;
-    }
-    
-    renderMessages();
-    saveChatsToStorage();
-    
-    // Clear input and attachments
-    DOM.messageInput.value = '';
-    DOM.messageInput.style.height = 'auto';
-    clearAttachments();
-    
-    // Show loading
-    showLoading();
-    
-    // Get AI response
-    try {
-        const aiResponse = await getAIResponse(message, currentChat.messages);
-        
-        const assistantMessage = {
-            id: 'msg_' + Date.now(),
-            type: 'assistant',
-            content: aiResponse,
-            timestamp: new Date().toISOString()
-        };
-        
-        currentChat.messages.push(assistantMessage);
-        saveChatsToStorage();
-        renderMessages();
-    } catch (error) {
-        console.error('Error getting AI response:', error);
-        
-        const errorMessage = {
-            id: 'msg_' + Date.now(),
-            type: 'assistant',
-            content: 'Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.',
-            timestamp: new Date().toISOString()
-        };
-        
-        currentChat.messages.push(errorMessage);
-        saveChatsToStorage();
-        renderMessages();
-    } finally {
-        hideLoading();
-    }
-}
-
-async function getAIResponse(userMessage, messageHistory) {
-    // Build conversation context
-    const messages = messageHistory.map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.content
-    }));
-    
-    const response = await fetch(OPENROUTER_API_URL, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.href,
-            'X-Title': 'TamAi v3'
-        },
-        body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: messages,
-            temperature: 0.7,
-            top_p: 0.9,
-            max_tokens: 2000
-        })
-    });
-    
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'API request failed');
-    }
-    
-    const data = await response.json();
-    return data.choices[0].message.content;
-}
-
-function renderMessages() {
-    if (!appState.currentChatId) {
-        DOM.messagesContainer.innerHTML = DOM.welcomeMessage.outerHTML;
-        return;
-    }
-    
-    const currentChat = appState.chats[appState.currentChatId];
-    if (!currentChat) {
-        DOM.messagesContainer.innerHTML = DOM.welcomeMessage.outerHTML;
-        return;
-    }
-    
-    if (currentChat.messages.length === 0) {
-        DOM.messagesContainer.innerHTML = DOM.welcomeMessage.outerHTML;
-        return;
-    }
-    
-    DOM.messagesContainer.innerHTML = '';
-    
-    currentChat.messages.forEach(msg => {
-        const messageEl = createMessageElement(msg);
-        DOM.messagesContainer.appendChild(messageEl);
-    });
-    
-    // Scroll to bottom
-    DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
-    
-    // Add copy button functionality to all code blocks
-    setTimeout(() => {
-        addCopyButtonsToCodeBlocks();
-    }, 100);
-}
-
-function createMessageElement(msg) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${msg.type}`;
-    
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
-    
-    // Parse content as HTML if it contains markdown-like formatting
-    contentDiv.innerHTML = formatMessageContent(msg.content);
-    
-    // Add attachments if any
-    if (msg.attachments && msg.attachments.length > 0) {
-        const attachmentsDiv = document.createElement('div');
-        attachmentsDiv.className = 'message-attachments';
-        attachmentsDiv.style.marginTop = '12px';
-        
-        msg.attachments.forEach(att => {
-            const attEl = document.createElement('div');
-            attEl.className = 'message-attachment-item';
-            attEl.style.cssText = 'padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; margin-top: 8px; font-size: 12px;';
-            
-            if (att.type.startsWith('image/')) {
-                const img = document.createElement('img');
-                img.src = att.data;
-                img.style.cssText = 'max-width: 200px; max-height: 200px; border-radius: 4px; margin-top: 8px;';
-                attEl.appendChild(img);
-            }
-            
-            const nameEl = document.createElement('div');
-            nameEl.textContent = att.name;
-            attEl.appendChild(nameEl);
-            
-            attachmentsDiv.appendChild(attEl);
-        });
-        
-        contentDiv.appendChild(attachmentsDiv);
-    }
-    
-    messageDiv.appendChild(contentDiv);
-    return messageDiv;
-}
-
-function formatMessageContent(content) {
-    // Handle code blocks
-    let formatted = content.replace(
-        /```(\w+)?\n([\s\S]*?)```/g,
-        (match, language, code) => {
-            const lang = language || 'javascript';
-            const escapedCode = escapeHtml(code.trim());
-            return `<pre><code>${escapedCode}</code></pre>`;
-        }
-    );
-    
-    // Handle inline code
-    formatted = formatted.replace(
-        /`([^`]+)`/g,
-        '<code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>'
-    );
-    
-    // Handle bold
-    formatted = formatted.replace(
-        /\*\*(.+?)\*\*/g,
-        '<strong>$1</strong>'
-    );
-    
-    // Handle italic
-    formatted = formatted.replace(
-        /\*(.+?)\*/g,
-        '<em>$1</em>'
-    );
-    
-    // Handle links
-    formatted = formatted.replace(
-        /\[(.+?)\]\((.+?)\)/g,
-        '<a href="$2" target="_blank">$1</a>'
-    );
-    
-    // Handle line breaks
-    formatted = formatted.replace(/\n/g, '<br>');
-    
-    return formatted;
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function addCopyButtonsToCodeBlocks() {
-    const codeBlocks = document.querySelectorAll('.message-content pre');
-    
-    codeBlocks.forEach(block => {
-        // Check if button already exists
-        if (block.querySelector('.copy-code-btn')) {
-            return;
-        }
-        
-        // Create button container
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'code-block-actions';
-        buttonContainer.style.cssText = `
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            display: flex;
-            gap: 8px;
-            z-index: 10;
-        `;
-        
-        const button = document.createElement('button');
-        button.className = 'copy-code-btn';
-        button.textContent = '📋 Copy';
-        button.type = 'button';
-        button.style.cssText = `
-            padding: 6px 12px;
-            background: rgba(14, 165, 233, 0.9);
-            color: white;
-            border: 1px solid rgba(14, 165, 233, 0.5);
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
-        `;
-        
-        button.addEventListener('mouseover', () => {
-            button.style.background = 'rgba(14, 165, 233, 1)';
-            button.style.transform = 'scale(1.05)';
-        });
-        
-        button.addEventListener('mouseout', () => {
-            if (!button.classList.contains('copied')) {
-                button.style.background = 'rgba(14, 165, 233, 0.9)';
-                button.style.transform = 'scale(1)';
-            }
-        });
-        
-        button.addEventListener('click', () => {
-            const code = block.querySelector('code').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                button.innerHTML = '✅ Copied!';
-                button.classList.add('copied');
-                button.style.background = 'rgba(16, 185, 129, 0.9)';
-                
-                setTimeout(() => {
-                    button.innerHTML = '📋 Copy';
-                    button.classList.remove('copied');
-                    button.style.background = 'rgba(14, 165, 233, 0.9)';
-                    button.style.transform = 'scale(1)';
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                button.innerHTML = '❌ Failed';
-                setTimeout(() => {
-                    button.innerHTML = '📋 Copy';
-                }, 2000);
-            });
-        });
-        
-        buttonContainer.appendChild(button);
-        
-        // Position block as relative so absolute positioning works
-        block.style.position = 'relative';
-        block.style.paddingTop = '40px';
-        block.appendChild(buttonContainer);
-    });
-}
-
-function clearMessages() {
-    DOM.messagesContainer.innerHTML = DOM.welcomeMessage.outerHTML;
-    appState.currentChatId = null;
+  e && e.stopPropagation();
+  if (!confirm('Yakin ingin menghapus chat ini?')) return;
+  delete appState.chats[chatId];
+  if (appState.currentChatId === chatId) appState.currentChatId = null;
+  saveChatsForCurrentUser(); renderChatList(); renderMessages();
 }
 
 function renderChatList() {
-    DOM.chatListContainer.innerHTML = '';
-    
-    const chatIds = Object.keys(appState.chats).reverse();
-    
-    if (chatIds.length === 0) {
-        DOM.chatListContainer.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 13px;">Belum ada chat</div>';
-        return;
-    }
-    
-    chatIds.forEach(chatId => {
-        const chat = appState.chats[chatId];
-        const chatItem = document.createElement('button');
-        chatItem.className = `chat-item ${appState.currentChatId === chatId ? 'active' : ''}`;
-        
-        const titleSpan = document.createElement('span');
-        titleSpan.className = 'chat-item-title';
-        titleSpan.textContent = chat.title;
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'chat-item-delete';
-        deleteBtn.type = 'button';
-        deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
-        deleteBtn.addEventListener('click', (e) => deleteChat(chatId, e));
-        
-        chatItem.appendChild(titleSpan);
-        chatItem.appendChild(deleteBtn);
-        chatItem.addEventListener('click', () => selectChat(chatId));
-        
-        DOM.chatListContainer.appendChild(chatItem);
-    });
+  if (!DOM.chatListContainer) return;
+  DOM.chatListContainer.innerHTML = '';
+  const ids = Object.keys(appState.chats || {});
+  if (ids.length === 0) {
+    DOM.chatListContainer.innerHTML = '<div style="padding:16px;color:var(--text-muted);">Belum ada chat</div>';
+    return;
+  }
+  ids.reverse().forEach(id => {
+    const chat = appState.chats[id];
+    const btn = document.createElement('button'); btn.className = 'chat-item';
+    btn.textContent = chat.title || 'Chat';
+    btn.addEventListener('click', () => selectChat(id));
+    const del = document.createElement('button'); del.className = 'chat-item-delete'; del.type = 'button'; del.textContent = 'Hapus';
+    del.addEventListener('click', (e) => deleteChat(id, e));
+    const wrapper = document.createElement('div'); wrapper.className = 'chat-list-row'; wrapper.appendChild(btn); wrapper.appendChild(del);
+    DOM.chatListContainer.appendChild(wrapper);
+  });
 }
 
-/* ========================================
-   ATTACHMENT FUNCTIONS
-   ======================================== */
+function renderMessages() {
+  if (!DOM.messagesContainer) return;
+  if (!appState.currentChatId) { DOM.messagesContainer.innerHTML = DOM.welcomeMessage ? DOM.welcomeMessage.outerHTML : ''; return; }
+  const chat = appState.chats[appState.currentChatId];
+  if (!chat || !chat.messages || chat.messages.length === 0) { DOM.messagesContainer.innerHTML = DOM.welcomeMessage ? DOM.welcomeMessage.outerHTML : ''; return; }
+  DOM.messagesContainer.innerHTML = '';
+  chat.messages.forEach(m => {
+    const el = document.createElement('div'); el.className = 'message ' + m.type;
+    const c = document.createElement('div'); c.className = 'message-content'; c.textContent = m.content;
+    el.appendChild(c); DOM.messagesContainer.appendChild(el);
+  });
+  DOM.messagesContainer.scrollTop = DOM.messagesContainer.scrollHeight;
+}
 
+/* ---------- Sending messages & AI ---------- */
+async function sendMessage() {
+  const text = (DOM.messageInput && DOM.messageInput.value || '').trim();
+  if (!text) return;
+  if (!appState.currentChatId) createNewChat();
+  const chat = appState.chats[appState.currentChatId];
+  const userMsg = { id: 'msg_' + Date.now(), type: 'user', content: text, timestamp: new Date().toISOString() };
+  chat.messages.push(userMsg);
+  if (!chat.title || chat.title === 'Chat Baru') chat.title = text.substring(0, 50);
+  saveChatsForCurrentUser(); renderMessages();
+  DOM.messageInput.value = '';
+
+  showLoading();
+  try {
+    const aiText = await getAIResponse(text, chat.messages);
+    const aiMsg = { id: 'msg_' + Date.now(), type: 'assistant', content: aiText, timestamp: new Date().toISOString() };
+    chat.messages.push(aiMsg);
+    saveChatsForCurrentUser(); renderMessages();
+  } catch (err) {
+    console.error('AI error:', err);
+    const errMsg = { id: 'msg_' + Date.now(), type: 'assistant', content: 'Terjadi error. Coba lagi nanti.' };
+    chat.messages.push(errMsg);
+    saveChatsForCurrentUser(); renderMessages();
+  } finally {
+    hideLoading();
+  }
+}
+
+async function getAIResponse(prompt, messageHistory) {
+  const messages = messageHistory.map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }));
+  const resp = await fetch(OPENROUTER_API_URL, {
+    method: 'POST', headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-3.5-turbo', messages, temperature: 0.7 })
+  });
+  if (!resp.ok) {
+    const txt = await resp.text(); throw new Error('OpenRouter failed: ' + txt);
+  }
+  const data = await resp.json();
+  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || (data.result || '');
+}
+
+/* ---------- Attachments (minimal) ---------- */
 function handleFileSelection(e) {
-    const files = e.target.files;
-    
-    if (files.length === 0) return;
-    
-    Array.from(files).forEach(file => {
-        addAttachment(file);
-    });
-    
-    // Reset file input
-    DOM.fileInput.value = '';
+  const files = e.target.files; if (!files || files.length === 0) return;
+  Array.from(files).forEach(f => addAttachment(f));
+  DOM.fileInput.value = '';
 }
 
 function addAttachment(file) {
-    const attachmentsList = getAttachmentsList();
-    
-    // Limit to 5 attachments
-    if (attachmentsList.length >= 5) {
-        alert('Maksimal 5 lampiran per pesan');
-        return;
-    }
-    
-    // Check file size (max 25MB)
-    if (file.size > 25 * 1024 * 1024) {
-        alert('Ukuran file terlalu besar (max 25MB)');
-        return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        const attachment = {
-            id: 'att_' + Date.now(),
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            data: event.target.result
-        };
-        
-        // Store in a temporary variable
-        if (!window.tamai_attachments) {
-            window.tamai_attachments = [];
-        }
-        window.tamai_attachments.push(attachment);
-        
-        renderAttachmentPreview();
-    };
-    
-    reader.readAsDataURL(file);
+  if (!window.tamai_attachments) window.tamai_attachments = [];
+  if (window.tamai_attachments.length >= 5) return showNotification('Maksimal 5 lampiran', 'error');
+  const reader = new FileReader();
+  reader.onload = (ev) => { window.tamai_attachments.push({ id: 'att_' + Date.now(), name: file.name, type: file.type, data: ev.target.result }); renderAttachmentPreview(); };
+  reader.readAsDataURL(file);
 }
 
 function renderAttachmentPreview() {
-    const attachments = getAttachmentsList();
-    
-    if (attachments.length === 0) {
-        DOM.attachmentPreview.classList.add('hidden');
-        return;
-    }
-    
-    DOM.attachmentPreview.classList.remove('hidden');
-    DOM.attachmentItems.innerHTML = '';
-    
-    attachments.forEach(att => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'attachment-item';
-        
-        // Create thumbnail or icon
-        const thumbDiv = document.createElement('div');
-        thumbDiv.className = 'attachment-item-thumbnail';
-        
-        if (att.type.startsWith('image/')) {
-            const img = document.createElement('img');
-            img.src = att.data;
-            thumbDiv.appendChild(img);
-        } else if (att.type.startsWith('video/')) {
-            const video = document.createElement('video');
-            video.src = att.data;
-            thumbDiv.appendChild(video);
-        } else {
-            const iconDiv = document.createElement('div');
-            iconDiv.className = 'attachment-item-icon';
-            iconDiv.innerHTML = getFileIcon(att.type);
-            thumbDiv.appendChild(iconDiv);
-        }
-        
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'attachment-item-name';
-        nameDiv.textContent = att.name;
-        nameDiv.title = att.name;
-        
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'attachment-item-remove';
-        removeBtn.type = 'button';
-        removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-        removeBtn.addEventListener('click', () => removeAttachment(att.id));
-        
-        itemDiv.appendChild(thumbDiv);
-        itemDiv.appendChild(nameDiv);
-        itemDiv.appendChild(removeBtn);
-        
-        DOM.attachmentItems.appendChild(itemDiv);
-    });
+  const atts = window.tamai_attachments || [];
+  if (!DOM.attachmentPreview) return;
+  if (atts.length === 0) { DOM.attachmentPreview.classList.add('hidden'); return; }
+  DOM.attachmentPreview.classList.remove('hidden'); DOM.attachmentItems.innerHTML = '';
+  atts.forEach(a => {
+    const item = document.createElement('div'); item.className = 'attachment-item';
+    const name = document.createElement('div'); name.textContent = a.name; item.appendChild(name);
+    const rem = document.createElement('button'); rem.textContent = 'X'; rem.addEventListener('click', () => removeAttachment(a.id)); item.appendChild(rem);
+    DOM.attachmentItems.appendChild(item);
+  });
 }
 
-function getFileIcon(fileType) {
-    if (fileType.startsWith('application/pdf')) {
-        return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
-    } else if (fileType.startsWith('application/') || fileType.startsWith('text/')) {
-        return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
-    } else {
-        return '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline></svg>';
-    }
+function removeAttachment(id) { window.tamai_attachments = (window.tamai_attachments||[]).filter(a => a.id !== id); renderAttachmentPreview(); }
+function clearAttachments() { window.tamai_attachments = []; renderAttachmentPreview(); }
+function getAttachmentsList() { return window.tamai_attachments || []; }
+
+/* ---------- UI helpers ---------- */
+function adjustTextareaHeight() { if (!DOM.messageInput) return; DOM.messageInput.style.height = 'auto'; DOM.messageInput.style.height = Math.min(DOM.messageInput.scrollHeight, 150) + 'px'; }
+function showLoading() { DOM.loadingSpinner && DOM.loadingSpinner.classList.remove('hidden'); }
+function hideLoading() { DOM.loadingSpinner && DOM.loadingSpinner.classList.add('hidden'); }
+function showMainApp() { DOM.authModal && DOM.authModal.classList.remove('active'); DOM.mainApp && DOM.mainApp.classList.remove('hidden'); updateProfileDisplay(); }
+function showAuthModal() { DOM.authModal && DOM.authModal.classList.add('active'); DOM.mainApp && DOM.mainApp.classList.add('hidden'); }
+
+function showNotification(message, type='info') {
+  console.log(message);
+  // minimal visual toast
+  const el = document.createElement('div'); el.className = `notification ${type}`; el.textContent = message;
+  el.style.cssText = 'position:fixed;top:20px;right:20px;padding:10px 14px;background:#333;color:#fff;border-radius:6px;z-index:9999;';
+  document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
 }
 
-function removeAttachment(attId) {
-    window.tamai_attachments = getAttachmentsList().filter(a => a.id !== attId);
-    renderAttachmentPreview();
-}
-
-function clearAttachments() {
-    window.tamai_attachments = [];
-    DOM.attachmentPreview.classList.add('hidden');
-    DOM.attachmentItems.innerHTML = '';
-}
-
-function getAttachmentsList() {
-    return window.tamai_attachments || [];
-}
-
-/* ========================================
-   UI FUNCTIONS
-   ======================================== */
-
-function adjustTextareaHeight() {
-    DOM.messageInput.style.height = 'auto';
-    const scrollHeight = DOM.messageInput.scrollHeight;
-    DOM.messageInput.style.height = Math.min(scrollHeight, 150) + 'px';
-}
-
-function toggleSidebar() {
-    appState.sidebarOpen = !appState.sidebarOpen;
-    
-    if (appState.sidebarOpen) {
-        DOM.sidebar.classList.add('active');
-    } else {
-        DOM.sidebar.classList.remove('active');
-    }
-}
-
-function toggleProfileMenu() {
-    appState.profileMenuOpen = !appState.profileMenuOpen;
-    
-    if (appState.profileMenuOpen) {
-        DOM.profileMenu.classList.remove('hidden');
-    } else {
-        DOM.profileMenu.classList.add('hidden');
-    }
-}
-
-function openSettings() {
-    DOM.settingsUsername.textContent = appState.currentUser.username;
-    DOM.settingsDisplayName.textContent = appState.currentUser.displayName;
-    DOM.settingsEmail.textContent = appState.currentUser.email;
-    
-    DOM.settingsModal.classList.remove('hidden');
-    appState.profileMenuOpen = false;
-    DOM.profileMenu.classList.add('hidden');
-}
-
-function closeSettings() {
-    DOM.settingsModal.classList.add('hidden');
-}
-
-function showLoading() {
-    DOM.loadingSpinner.classList.remove('hidden');
-}
-
-function hideLoading() {
-    DOM.loadingSpinner.classList.add('hidden');
-}
-
-function showMainApp() {
-    DOM.authModal.classList.remove('active');
-    DOM.mainApp.classList.remove('hidden');
-    updateProfileDisplay();
-}
-
-function showAuthModal() {
-    DOM.authModal.classList.add('active');
-    DOM.mainApp.classList.add('hidden');
-}
-
-function resetAuthForms() {
-    DOM.loginEmail.value = '';
-    DOM.loginPassword.value = '';
-    DOM.registerUsername.value = '';
-    DOM.registerDisplayName.value = '';
-    DOM.registerEmail.value = '';
-    DOM.registerPassword.value = '';
-    DOM.otpCode.value = '';
-    DOM.profilePicInput.value = '';
-    DOM.profilePicPreview.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
-    DOM.profilePicFileName.textContent = 'No image selected';
-    
-    switchAuthForm('loginForm');
-}
+/* ---------- Settings / Profile ---------- */
+function toggleProfileMenu() { DOM.profileMenu && DOM.profileMenu.classList.toggle('hidden'); }
+function openSettings() { if (!appState.currentUser) return; DOM.settingsUsername && (DOM.settingsUsername.textContent = appState.currentUser.username); DOM.settingsDisplayName && (DOM.settingsDisplayName.textContent = appState.currentUser.displayName); DOM.settingsEmail && (DOM.settingsEmail.textContent = appState.currentUser.email); DOM.settingsModal && DOM.settingsModal.classList.remove('hidden'); }
+function closeSettings() { DOM.settingsModal && DOM.settingsModal.classList.add('hidden'); }
+function handleLogout() { if (!confirm('Yakin logout?')) return; localStorage.removeItem('tamai_is_logged_in'); localStorage.removeItem('tamai_current_user'); appState.currentUser = null; appState.isLoggedIn = false; appState.chats = {}; appState.currentChatId = null; showAuthModal(); showNotification('Anda berhasil logout', 'success'); }
 
 function updateProfileDisplay() {
-    if (appState.currentUser) {
-        DOM.profileDisplayName.textContent = appState.currentUser.displayName;
-        
-        // Update profile username dengan @username dan PRO badge
-        const usernameHandle = DOM.profileUsername;
-        usernameHandle.innerHTML = `@${appState.currentUser.username} <span class="pro-badge">PRO</span>`;
-        
-        if (appState.currentUser.profilePic) {
-            DOM.profileAvatarImg.src = appState.currentUser.profilePic;
-        } else {
-            // Create initials avatar
-            const initials = appState.currentUser.displayName
-                .split(' ')
-                .map(n => n[0])
-                .join('')
-                .toUpperCase()
-                .substring(0, 2);
-            
-            DOM.profileAvatar.innerHTML = `<span style="font-size: 18px; font-weight: 700;">${initials}</span>`;
-        }
-    }
+  if (!appState.currentUser) return;
+  DOM.profileDisplayName && (DOM.profileDisplayName.textContent = appState.currentUser.displayName || '');
+  if (DOM.profileUsername) DOM.profileUsername.innerHTML = `@${appState.currentUser.username || ''} <span class="pro-badge">PRO</span>`;
+  if (appState.currentUser.profilePic && DOM.profileAvatarImg) DOM.profileAvatarImg.src = appState.currentUser.profilePic;
+  else if (DOM.profileAvatar) DOM.profileAvatar.innerHTML = `<span style="font-size:18px;font-weight:700;">${(appState.currentUser.displayName||'').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2)}</span>`;
 }
 
-/* ========================================
-   STORAGE FUNCTIONS
-   ======================================== */
+/* ---------- Misc ---------- */
+function saveAllUsersToStorage(users) { saveAllUsersToStorage; } // placeholder to avoid accidental calls
 
-function saveUserDataToStorage(user) {
-    localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
-    localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true');
-}
+console.log('TamAi script loaded');
 
-function loadUserDataFromStorage() {
-    const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
-    const isLoggedIn = localStorage.getItem(STORAGE_KEYS.IS_LOGGED_IN) === 'true';
-    
-    if (userData && isLoggedIn) {
-        appState.currentUser = JSON.parse(userData);
-        appState.isLoggedIn = true;
-    }
-}
-
-function saveChatsToStorage() {
-    localStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(appState.chats));
-    if (appState.currentChatId) {
-        localStorage.setItem(STORAGE_KEYS.CURRENT_CHAT_ID, appState.currentChatId);
-    }
-}
-
-function loadChatsFromStorage() {
-    const chatsData = localStorage.getItem(STORAGE_KEYS.CHATS);
-    const currentChatId = localStorage.getItem(STORAGE_KEYS.CURRENT_CHAT_ID);
-    
-    if (chatsData) {
-        appState.chats = JSON.parse(chatsData);
-    } else {
-        appState.chats = {};
-    }
-    
-    appState.currentChatId = currentChatId || null;
-    
-    renderChatList();
-    
-    if (appState.currentChatId) {
-        renderMessages();
-    }
-}
-
-function getAllUsersFromStorage() {
-    const users = localStorage.getItem('tamai_all_users');
-    return users ? JSON.parse(users) : [];
-}
-
-function checkAuthStatus() {
-    if (appState.isLoggedIn && appState.currentUser) {
-        showMainApp();
-    } else {
-        showAuthModal();
-    }
-}
-
-/* ========================================
-   LOGOUT FUNCTION
-   ======================================== */
-
-function handleLogout() {
-    if (confirm('👋 Yakin ingin logout?')) {
-        // Clear user data
-        localStorage.removeItem(STORAGE_KEYS.USER_DATA);
-        localStorage.removeItem(STORAGE_KEYS.IS_LOGGED_IN);
-        
-        // Reset app state
-        appState.isLoggedIn = false;
-        appState.currentUser = null;
-        appState.currentChatId = null;
-        appState.chats = {};
-        appState.sidebarOpen = true;
-        appState.profileMenuOpen = false;
-        
-        // Clear attachments
-        window.tamai_attachments = [];
-        
-        // Show auth modal
-        showAuthModal();
-        resetAuthForms();
-        
-        // Close profile menu
-        DOM.profileMenu.classList.add('hidden');
-        
-        showNotification('👋 Anda berhasil logout', 'success');
-    }
-}
-
-/* ========================================
-   UTILITY FUNCTIONS
-   ======================================== */
-
-console.log('%cTamAi v3 - Smart Chat Assistant', 'color: #38bdf8; font-size: 16px; font-weight: bold;');
-console.log('%cRun in production mode for full OpenRouter API integration', 'color: #cbd5e1; font-size: 12px;');
-console.log('%cFor testing OTP, check the console output during registration', 'color: #cbd5e1; font-size: 12px;');
+/* End of file */
