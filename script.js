@@ -434,7 +434,8 @@ async function sendMessage() {
     chat.messages.push(aiMsg);
     saveChatsForCurrentUser(); renderMessages();
   } catch (err) {
-    console.error('AI error:', err);
+    console.error('❌ AI ERROR DETAILS:', err);
+    console.error('Error message:', err.message);
     const errMsg = { id: 'msg_' + Date.now(), type: 'assistant', content: 'Terjadi error. Coba lagi nanti.' };
     chat.messages.push(errMsg);
     saveChatsForCurrentUser(); renderMessages();
@@ -445,15 +446,41 @@ async function sendMessage() {
 
 async function getAIResponse(prompt, messageHistory) {
   const messages = messageHistory.map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }));
+  console.log('📤 Sending to OpenRouter:', { model: 'google/gemini-2.0-flash-exp:free', messages });
+  
   const resp = await fetch(OPENROUTER_API_URL, {
-    method: 'POST', headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'gpt-3.5-turbo', messages, temperature: 0.7 })
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'http://localhost'
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.0-flash-exp:free',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 1024
+    })
   });
+
+  console.log('📥 Response status:', resp.status);
+  
   if (!resp.ok) {
-    const txt = await resp.text(); throw new Error('OpenRouter failed: ' + txt);
+    const txt = await resp.text();
+    console.error('❌ API Error Response:', txt);
+    throw new Error('OpenRouter failed: ' + txt);
   }
+
   const data = await resp.json();
-  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || (data.result || '');
+  console.log('✅ API Response data:', data);
+
+  const content = data.choices?.[0]?.message?.content || data.result || '';
+  if (!content) {
+    console.error('❌ No content in response:', data);
+    throw new Error('No response content from AI');
+  }
+  
+  return content;
 }
 
 /* ---------- Attachments (minimal) ---------- */
