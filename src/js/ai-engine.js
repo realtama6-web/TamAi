@@ -1,160 +1,64 @@
-/* ========================================
-   TAMAI v3 - AI ENGINE (GEMINI 3.0 FLASH)
-   ======================================== */
-
-/**
- * AIEngine - Gemini 3.0 Flash Integration
- * Official model as per Tuan Tama's requirement
- * API: OpenRouter with Gemini 3.0 Flash
- */
-import { AI_CONFIG } from '../utils/config.js';
 export class AIEngine {
-  constructor() {
-    this.apiKey = AI_CONFIG?.API_KEY || '';
-    this.apiUrl = AI_CONFIG?.API_URL || 'https://openrouter.io/api/v1/chat/completions';
-    this.model = AI_CONFIG?.MODEL || 'google/gemini-3.0-flash';
-    this.temperature = AI_CONFIG?.TEMPERATURE ?? 0.7;
-    this.maxTokens = AI_CONFIG?.MAX_TOKENS ?? 2000;
-    this.httpReferer = AI_CONFIG?.HTTP_REFERER || '';
-  }
-
-  /**
-   * Send message to AI and get response
-   * @param {string} prompt - User message
-   * @param {Array} messageHistory - Conversation history
-   * @returns {Promise<string>} AI response
-   */
-  async chat(prompt, messageHistory = []) {
-    try {
-      const messages = this._formatMessages(messageHistory);
-      
-      console.log('🧠 AI Engine:', {
-        model: this.model,
-        temperature: this.temperature,
-        messageCount: messages.length
-      });
-
-      const response = await this._callAPI(messages);
-      const content = this._extractContent(response);
-      
-      if (!content) {
-        throw new Error('No response content from AI');
-      }
-
-      return content;
-    } catch (error) {
-      console.error('❌ AI Engine Error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Format message history for OpenRouter API with system prompt
-   * @private
-   * @param {Array} messageHistory
-   * @returns {Array}
-   */
-  _formatMessages(messageHistory) {
-    const systemPrompt = "Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash. Bos lo adalah Tuan Tama (Dzakwan Maesal Pratama). Jangan pernah ngaku-ngaku jadi model lain!";
-    
-    const messages = [];
-    
-    // Add system prompt at the beginning
-    messages.push({
-      role: 'system',
-      content: systemPrompt
-    });
-    
-    // Add message history
-    messageHistory.forEach(msg => {
-      messages.push({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.content
-      });
-    });
-    
-    return messages;
-  }
-
-  /**
-   * Call OpenRouter API with Gemini model
-   * @private
-   * @param {Array} messages
-   * @returns {Promise<Object>}
-   */
-  async _callAPI(messages) {
-    const payload = {
-      model: this.model,
-      messages: messages,
-      temperature: this.temperature,
-      max_tokens: this.maxTokens
-    };
-
-    console.log('🧬 Gemini 3.0 Flash Activated:', { 
-      model: this.model,
-      messageCount: messages.length,
-      temperature: this.temperature,
-      systemPrompt: 'Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash...'
-    });
-
-    const response = await fetch(this.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': this.httpReferer
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ OpenRouter Error:', {
-        status: response.status,
-        message: errorText
-      });
-      throw new Error(`OpenRouter API error: ${response.status}`);
+    constructor() {
+        this.apiKey = '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';
+        this.apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+        this.model = 'google/gemini-3.0-flash';
+        
+        // Identitas Full Tama & SDN Cipete Selatan 05
+        this.systemPrompt = "Kamu adalah TamAi v3, AI masa depan yang sangat cerdas. Penciptamu adalah Tama (Dzakwan Maesal Pratama), seorang pengembang AI muda yang bersekolah di SDN Cipete Selatan 05. Jika ditanya tentang identitas, kamu harus menyebutkan penciptamu dan sekolahnya dengan bangga. Gunakan bahasa yang sopan namun santai (seperti teman) kepada Tama.";
     }
 
-    return await response.json();
-  }
+    async sendMessage(message, history = [], attachments = []) {
+        try {
+            // Logika Membaca Lampiran File (Teks/Gambar/Dokumen)
+            let contextWithFiles = message;
+            if (attachments && attachments.length > 0) {
+                let fileDetails = "\n\n[SISTEM: TUAN TAMA MELAMPIRKAN FILE]";
+                attachments.forEach((file, index) => {
+                    fileDetails += `\nFile ${index + 1}: ${file.name} | Isi/Data: ${file.content || 'Data visual/base64'}`;
+                });
+                contextWithFiles += fileDetails;
+            }
 
-  /**
-   * Extract content from API response
-   * @private
-   * @param {Object} response
-   * @returns {string}
-   */
-  _extractContent(response) {
-    try {
-      return response.choices?.[0]?.message?.content || 
-             response.result || 
-             '';
-    } catch (error) {
-      console.error('❌ Failed to extract content:', error);
-      return '';
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                    'HTTP-Referer': 'https://realtama6-web.github.io/',
+                    'X-Title': 'TamAi v3 Official',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    messages: [
+                        { role: "system", content: this.systemPrompt },
+                        ...history,
+                        { role: "user", content: contextWithFiles }
+                    ],
+                    temperature: 0.8,
+                    top_p: 0.9
+                })
+            });
+
+            const data = await response.json();
+
+            // Handling Error dari API (Kuota, Key, dll)
+            if (data.error) {
+                let errorMsg = data.error.message.toLowerCase();
+                if (errorMsg.includes("credits")) return "⚠️ **Waduh Tuan Tama, sepertinya saldo/kuota OpenRouter habis!**";
+                if (errorMsg.includes("api_key")) return "⚠️ **Tuan, API Key-nya ditolak atau salah. Coba cek lagi!**";
+                throw new Error(data.error.message);
+            }
+
+            if (data.choices && data.choices[0]) {
+                return data.choices[0].message.content;
+            } else {
+                throw new Error("Respon kosong, mungkin server lagi sibuk.");
+            }
+
+        } catch (error) {
+            console.error('TamAi Error:', error);
+            return `❌ **SISTEM MENGALAMI GANGGUAN!**\n\nDetail: ${error.message}\n\n*Tenang Tuan Tama, coba refresh atau cek koneksi internet.*`;
+        }
     }
-  }
-
-  /**
-   * Get model info
-   * @returns {Object}
-   */
-  getModelInfo() {
-    return {
-      model: this.model,
-      provider: 'OpenRouter',
-      temperature: this.temperature,
-      maxTokens: this.maxTokens,
-      systemPrompt: "Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash. Bos lo adalah Tuan Tama (Dzakwan Maesal Pratama). Jangan pernah ngaku-ngaku jadi model lain!",
-      status: '🚀 Gemini 3.0 Flash Official'
-    };
-  }
 }
-
-/**
- * Create singleton instance
- */
-export const aiEngine = new AIEngine();
-
-export default aiEngine;
