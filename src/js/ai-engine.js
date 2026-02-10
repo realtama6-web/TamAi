@@ -7,13 +7,15 @@
  * Official model as per Tuan Tama's requirement
  * API: OpenRouter with Gemini 3.0 Flash
  */
+import { AI_CONFIG } from '../utils/config.js';
 export class AIEngine {
   constructor() {
-    this.apiKey = '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';
-    this.apiUrl = 'https://openrouter.io/api/v1/chat/completions';
-    this.model = 'google/gemini-3.0-flash';
-    this.temperature = 0.7;
-    this.maxTokens = 2000;
+    this.apiKey = AI_CONFIG?.API_KEY || '';
+    this.apiUrl = AI_CONFIG?.API_URL || 'https://openrouter.io/api/v1/chat/completions';
+    this.model = AI_CONFIG?.MODEL || 'google/gemini-3.0-flash';
+    this.temperature = AI_CONFIG?.TEMPERATURE ?? 0.7;
+    this.maxTokens = AI_CONFIG?.MAX_TOKENS ?? 2000;
+    this.httpReferer = AI_CONFIG?.HTTP_REFERER || '';
   }
 
   /**
@@ -100,7 +102,7 @@ export class AIEngine {
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://tamai.local'
+        'HTTP-Referer': this.httpReferer
       },
       body: JSON.stringify(payload)
     });
