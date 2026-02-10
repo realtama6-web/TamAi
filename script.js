@@ -53,83 +53,119 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * Check if user is already authenticated
+ * Check if user is already authenticated and show appropriate interface
  */
 function checkAuthStatus() {
-  const user = localStorage.getItem('userTamAi');
-  if (user) {
-    appState.currentUser = JSON.parse(user);
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const userData = localStorage.getItem('userData');
+
+  if (isLoggedIn && userData) {
+    console.log('✅ Existing session found');
+    appState.currentUser = JSON.parse(userData);
     appState.isLoggedIn = true;
+    
     showMainApp();
+    updateProfileUI();
     loadUserChats();
   } else {
+    console.log('🔐 No session, showing login');
     showAuthModal();
   }
 }
 
 /**
- * Initialize Google Identity Services
+ * Initialize Google Identity Services with automatic button rendering
  */
 function initializeGoogleSSO() {
   if (window.google?.accounts?.id) {
-    google.accounts.id.initialize({
-      client_id: '164055469439-65jpo9bkenifr28df97i6l4g5vlvfiem.apps.googleusercontent.com',
-      callback: handleCredentialResponse
-    });
-    google.accounts.id.renderButton(
-      document.getElementById('g_id_onload'),
-      { theme: 'outline', size: 'large' }
-    );
-    console.log('✅ Google Identity Services Initialized');
+    try {
+      google.accounts.id.initialize({
+        client_id: '164055469439-65jpo9bkenifr28df97i6l4g5vlvfiem.apps.googleusercontent.com',
+        callback: handleCredentialResponse,
+        auto_select: false
+      });
+
+      // Render button in the g_id_onload container
+      const signInContainer = document.getElementById('g_id_onload');
+      if (signInContainer) {
+        google.accounts.id.renderButton(signInContainer, {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          locale: 'id'
+        });
+        console.log('✅ Google Sign-In Button Rendered');
+      } else {
+        console.warn('⚠️ g_id_onload container not found');
+      }
+
+      console.log('✅ Google Identity Services Initialized');
+    } catch (error) {
+      console.error('❌ Error initializing Google SSO:', error);
+    }
+  } else {
+    console.warn('⚠️ Google identity services not loaded');
   }
 }
 
 /**
- * Handle Google credential response - JWT decode
+ * Handle Google credential response - JWT decode + redirect
  */
 function handleCredentialResponse(response) {
   try {
-    // Decode JWT payload
-    const base64Url = response.credential.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-
-    const data = JSON.parse(jsonPayload);
-    console.log('✅ Google Login Success:', data.name);
-
-    // Prepare user data
+    console.log("🔐 Token diterima. Memproses...");
+    
+    // Decode JWT menggunakan jwt-decode library
+    const decodedToken = jwt_decode(response.credential);
+    console.log("✅ JWT decoded:", decodedToken);
+    
+    // Simpan ke localStorage
     const userData = {
-      name: data.name,
-      email: data.email,
-      picture: data.picture,
+      name: decodedToken.name,
+      email: decodedToken.email,
+      picture: decodedToken.picture,
+      aud: decodedToken.aud,
       authenticatedAt: new Date().toISOString(),
       provider: 'google'
     };
-
-    // Save to localStorage
+    
+    console.log("💾 Menyimpan data ke localStorage...");
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userData', JSON.stringify(userData));
     localStorage.setItem('userTamAi', JSON.stringify(userData));
-
+    
+    console.log("✅ Data tersimpan!");
+    console.log("👤 Login as:", userData.name);
+    
     // Update app state
     appState.currentUser = userData;
     appState.isLoggedIn = true;
-
-    // Show main app
-    if (DOM.authModal) DOM.authModal.classList.add('hidden');
-    if (DOM.mainApp) DOM.mainApp.classList.remove('hidden');
-
-    // Update UI
+    
+    // Sembunyikan auth modal, tampilkan chat interface
+    console.log("🎨 Mengubah UI...");
+    const authModal = document.getElementById('authModal');
+    const mainApp = document.getElementById('mainApp');
+    
+    if (authModal) {
+      authModal.style.display = 'none';
+      console.log("✅ Auth modal hidden");
+    }
+    if (mainApp) {
+      mainApp.style.display = 'flex';
+      console.log("✅ Main app displayed");
+    }
+    
+    // Update profile UI
     updateProfileUI();
     loadUserChats();
-
-    console.log('🎉 TamAi Chat Activated');
+    
+    console.log("🎉 ZUP! Login berhasil! Chat interface aktif.");
+    console.log("🚀 Ready to chat!");
+    
   } catch (error) {
     console.error('❌ Google Login Error:', error);
-    alert('Login gagal. Silakan coba lagi.');
+    console.error('Error details:', error.message);
+    alert('Login gagal: ' + error.message);
   }
 }
 
@@ -442,16 +478,40 @@ function handleLogout() {
  * Show auth modal
  */
 function showAuthModal() {
-  if (DOM.authModal) DOM.authModal.classList.remove('hidden');
-  if (DOM.mainApp) DOM.mainApp.classList.add('hidden');
+  const authModal = document.getElementById('authModal');
+  const mainApp = document.getElementById('mainApp');
+
+  if (authModal) {
+    authModal.style.display = 'flex';
+    authModal.classList.add('active');
+    authModal.classList.remove('hidden');
+  }
+  if (mainApp) {
+    mainApp.style.display = 'none';
+    mainApp.classList.add('hidden');
+  }
+
+  console.log('🔐 Login interface displayed');
 }
 
 /**
  * Show main app
  */
 function showMainApp() {
-  if (DOM.authModal) DOM.authModal.classList.add('hidden');
-  if (DOM.mainApp) DOM.mainApp.classList.remove('hidden');
+  const authModal = document.getElementById('authModal');
+  const mainApp = document.getElementById('mainApp');
+
+  if (authModal) {
+    authModal.style.display = 'none';
+    authModal.classList.remove('active');
+    authModal.classList.add('hidden');
+  }
+  if (mainApp) {
+    mainApp.style.display = 'flex';
+    mainApp.classList.remove('hidden');
+  }
+
+  console.log('🎨 Chat interface displayed');
 }
 
 /**
