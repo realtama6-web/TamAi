@@ -11,22 +11,17 @@
  */
 function handleCredentialResponse(response) {
   try {
-    // Decode JWT using jwt-decode library
-    const data = jwt_decode(response.credential);
+    // Decode JWT using jwt-decode library via window to ensure global variable is found
+    const userData = window.jwt_decode(response.credential);
     console.log('✅ Google Login Success:', {
-      name: data.name,
-      email: data.email,
-      picture: data.picture
+      name: userData.name,
+      email: userData.email,
+      picture: userData.picture
     });
 
-    // Prepare user data
-    const userData = {
-      name: data.name,
-      email: data.email,
-      picture: data.picture,
-      authenticatedAt: new Date().toISOString(),
-      provider: 'google'
-    };
+    // Enrich decoded token with session metadata
+    userData.authenticatedAt = new Date().toISOString();
+    userData.provider = 'google';
 
     // Save to localStorage with key 'userTamAi'
     localStorage.setItem('userTamAi', JSON.stringify(userData));
@@ -51,10 +46,8 @@ function handleCredentialResponse(response) {
 
     console.log('🎉 TamAi Chat Interface Activated');
 
-    // Redirect to dashboard after successful login
-    setTimeout(() => {
-      window.location.href = 'index.html';
-    }, 500);
+    // Redirect to dashboard after successful login (force reload to chat)
+    window.location.href = 'index.html';
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     alert('Login gagal. Silakan coba lagi.');
