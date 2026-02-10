@@ -157,6 +157,22 @@
   background: linear-gradient(to right, transparent, #0088ff, transparent);
 }
 
+/* Center and glow Google Sign-In button inside auth form */
+.g_id_signin {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.g_id_signin > div,
+.g_id_signin > button {
+  border: 1px solid #0088ff;
+  box-shadow: 0 0 28px rgba(0, 136, 255, 0.55);
+  border-radius: 12px !important;
+  background: #000000 !important;
+}
+
 /* ========================================
    OTP INPUT GROUP
    ======================================== */

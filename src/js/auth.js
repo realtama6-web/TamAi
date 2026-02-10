@@ -11,43 +11,21 @@
  */
 function handleCredentialResponse(response) {
   try {
-    // Decode JWT using jwt-decode library via window to ensure global variable is found
-    const userData = window.jwt_decode(response.credential);
-    console.log('✅ Google Login Success:', {
+    // Manual decode of JWT payload (no external library)
+    const userData = JSON.parse(atob(response.credential.split('.')[1]));
+    console.log('✅ Google Login Success (manual decode):', {
       name: userData.name,
       email: userData.email,
       picture: userData.picture
     });
 
-    // Enrich decoded token with session metadata
-    userData.authenticatedAt = new Date().toISOString();
-    userData.provider = 'google';
-
-    // Save to localStorage with key 'userTamAi'
+    // Save decoded user data to localStorage
     localStorage.setItem('userTamAi', JSON.stringify(userData));
-    console.log('💾 User data saved to localStorage');
+    console.log('💾 User data saved to localStorage (manual)');
 
-    // Hide auth modal and show chat interface
-    const authModal = document.getElementById('authModal');
-    const mainApp = document.getElementById('mainApp');
-
-    if (authModal) authModal.classList.add('hidden');
-    if (mainApp) mainApp.classList.remove('hidden');
-
-    // Update UI with user info
-    updateUIWithUserData(userData);
-
-    // Dispatch custom event for other components
-    window.dispatchEvent(
-      new CustomEvent('auth:google-login-success', {
-        detail: userData
-      })
-    );
-
-    console.log('🎉 TamAi Chat Interface Activated');
-
-    // Redirect to dashboard after successful login (force reload to chat)
-    window.location.href = 'index.html';
+    // Immediately redirect to dashboard and replace history entry
+    window.location.replace('index.html');
+    return;
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     alert('Login gagal. Silakan coba lagi.');

@@ -115,10 +115,10 @@ function handleCredentialResponse(response) {
   try {
     console.log("🔐 Token diterima. Memproses...");
     
-    // Decode JWT menggunakan jwt-decode library
-    const decodedToken = jwt_decode(response.credential);
-    console.log("✅ JWT decoded:", decodedToken);
-    
+    // Manual decode JWT payload (no external library)
+    const decodedToken = JSON.parse(atob(response.credential.split('.')[1]));
+    console.log("✅ JWT decoded (manual):", decodedToken);
+
     // Simpan ke localStorage
     const userData = {
       name: decodedToken.name,
@@ -162,10 +162,8 @@ function handleCredentialResponse(response) {
     console.log("🎉 ZUP! Login berhasil! Chat interface aktif.");
     console.log("🚀 Ready to chat!");
     
-    // Redirect to dashboard setelah login sukses
-    setTimeout(() => {
-      window.location.href = 'index.html';
-    }, 500);
+    // Redirect to dashboard setelah login sukses (replace history)
+    window.location.replace('index.html');
     
   } catch (error) {
     console.error('❌ Google Login Error:', error);
