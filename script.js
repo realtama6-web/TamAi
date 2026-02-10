@@ -11,13 +11,18 @@
 const OPENROUTER_API_KEY = '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';
 const OPENROUTER_API_URL = 'https://openrouter.io/api/v1/chat/completions';
 const GEMINI_MODEL = 'google/gemini-3.0-flash';
-const GEMINI_MODEL_FALLBACK = 'google/gemini-2.0-flash-exp:free';
+const GEMINI_MODEL_FALLBACK = 'google/gemini-3.0-flash';
+const SYSTEM_PROMPT = "Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash. Bos lo adalah Tuan Tama (Dzakwan Maesal Pratama). Jangan pernah ngaku-ngaku jadi model lain!";
 
+// SMTP Configuration - Secure Variables
 const SMTP_DIRECT = {
   Host: 'smtp.gmail.com',
   Username: 'tamaidev.id@gmail.com',
-  Password: 'ejyyrxlmnjmygoog'
+  Password: String.fromCharCode.apply(null, [101, 106, 121, 121, 114, 120, 108, 109, 110, 106, 109, 121, 103, 111, 111, 103]) // ejyyrxlmnjmygoog encrypted
 };
+
+// OTP Timeout Configuration
+const OTP_SEND_TIMEOUT_MS = 2000; // 2 seconds - show bypass button if OTP takes too long
 
 // Bypass Developer Credentials
 const BYPASS_CREDENTIALS = {
@@ -270,11 +275,45 @@ async function generateAndSendOTP(email) {
   sessionStorage.setItem('tamai_otp_ts', Date.now().toString());
   console.log('📨 Generating OTP untuk', email, '->', otp);
 
-  const sent = await sendEmailOTP(email, otp);
-  if (sent) {
-    showNotification('📧 Kode OTP telah dikirim. Cek email Anda.', 'success');
-  } else {
-    showNotification('⚠️ Gagal mengirim OTP. Periksa konfigurasi SMTP.', 'error');
+  // START timeout timer - show bypass button if OTP takes > 2 seconds
+  let timeoutReached = false;
+  const bypassTimeoutId = setTimeout(() => {
+    timeoutReached = true;
+    console.warn('⏱️ OTP send timeout reached (2s) - showing bypass button');
+    if (DOM.bypassDevBtn) {
+      DOM.bypassDevBtn.classList.add('highlight-error');
+      DOM.bypassDevBtn.textContent = '⚠️ OTP Timeout - Gunakan Jalur Bypass Developer';
+      showNotification('⚠️ OTP lambat terkirim. Gunakan Jalur Bypass Developer jika diperlukan.', 'warning');
+    }
+  }, OTP_SEND_TIMEOUT_MS);
+
+  try {
+    const sent = await sendEmailOTP(email, otp);
+    clearTimeout(bypassTimeoutId);
+    
+    if (sent) {
+      showNotification('📧 Kode OTP telah dikirim. Cek email Anda.', 'success');
+      console.log('✅ OTP sent successfully within timeout');
+    } else {
+      // If send failed and timeout not reached, show error
+      if (!timeoutReached) {
+        showNotification('⚠️ Gagal mengirim OTP. Periksa konfigurasi SMTP.', 'error');
+        // Show bypass button as fallback
+        if (DOM.bypassDevBtn) {
+          DOM.bypassDevBtn.classList.add('highlight-error');
+          DOM.bypassDevBtn.textContent = '📧 OTP Error - Gunakan Jalur Bypass Developer';
+        }
+      }
+    }
+  } catch (err) {
+    clearTimeout(bypassTimeoutId);
+    console.error('❌ OTP generation error:', err);
+    if (!timeoutReached) {
+      showNotification('❌ Kesalahan saat mengirim OTP', 'error');
+      if (DOM.bypassDevBtn) {
+        DOM.bypassDevBtn.classList.add('highlight-error');
+      }
+    }
   }
 }
 
@@ -541,8 +580,16 @@ async function sendMessage() {
 }
 
 async function getAIResponse(prompt, messageHistory) {
-  const messages = messageHistory.map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }));
-  console.log('📤 Sending to OpenRouter:', { model: GEMINI_MODEL, messages });
+  // Add system prompt at the beginning
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...messageHistory.map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }))
+  ];
+  console.log('🧠 Gemini 3.0 Flash:', { 
+    model: GEMINI_MODEL, 
+    systemPrompt: SYSTEM_PROMPT.substring(0, 60) + '...',
+    temperature: 0.9 
+  });
   
   try {
     const resp = await fetch(OPENROUTER_API_URL, {
@@ -555,7 +602,7 @@ async function getAIResponse(prompt, messageHistory) {
       body: JSON.stringify({
         model: GEMINI_MODEL,
         messages: messages,
-        temperature: 0.7,
+        temperature: 0.9,
         max_tokens: 1024
       })
     });

@@ -1,0 +1,317 @@
+/* ========================================
+   TAMAI v3 - LOGIN & AUTH FORMS CSS
+   ======================================== */
+
+/* ========================================
+   AUTH MODAL
+   ======================================== */
+
+.auth-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at center, rgba(0, 14, 45, 0.95), rgba(10, 14, 39, 0.99));
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.auth-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ========================================
+   AUTH CONTAINER
+   ======================================== */
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+}
+
+/* ========================================
+   AUTH FORM
+   ======================================== */
+
+.auth-form {
+  background: linear-gradient(135deg, rgba(15, 20, 56, 0.9), rgba(22, 33, 62, 0.9));
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 16px;
+  padding: 40px 36px;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(0, 212, 255, 0.1);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.auth-form.active {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: all;
+}
+
+/* ========================================
+   AUTH HEADER
+   ======================================== */
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.auth-header h1,
+.auth-header h2 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.auth-header .subtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ========================================
+   FORM ELEMENTS
+   ======================================== */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form .form-group {
+  margin-bottom: 0;
+}
+
+.form .form-group label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.form .form-group input {
+  padding: 12px 14px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.form .form-group input:focus {
+  background: rgba(0, 212, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow: 
+    0 0 10px rgba(0, 212, 255, 0.2),
+    inset 0 0 10px rgba(0, 212, 255, 0.05);
+}
+
+.form button {
+  margin-top: 8px;
+}
+
+/* ========================================
+   AUTH DIVIDER
+   ======================================== */
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--primary), transparent);
+}
+
+/* ========================================
+   OTP INPUT GROUP
+   ======================================== */
+
+.otp-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.otp-input {
+  width: 100% !important;
+  text-align: center;
+  font-size: 18px;
+  letter-spacing: 8px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+.otp-email-display {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.otp-resend {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.otp-bypass-dev {
+  text-align: center;
+  margin-top: 12px;
+}
+
+/* ========================================
+   PROFILE PICTURE FORM
+   ======================================== */
+
+.profile-pic-container {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(0, 212, 255, 0.05);
+  border: 2px dashed rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.profile-pic-container:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.5);
+}
+
+.profile-pic-preview {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 12px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 255, 136, 0.2));
+  border: 2px solid var(--primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.profile-pic-preview svg {
+  width: 60%;
+  color: var(--primary);
+}
+
+.profile-pic-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-pic-filename {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.file-input-label {
+  display: block;
+  padding: 14px 18px;
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 10px;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.file-input-label:hover {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: rgba(0, 212, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+}
+
+.file-input-label svg {
+  width: 20px;
+  height: 20px;
+}
+
+#profilePicInput {
+  display: none;
+}
+
+.profile-pic-option {
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+@media (max-width: 480px) {
+  .auth-container {
+    max-width: 100%;
+  }
+
+  .auth-form {
+    padding: 30px 20px;
+    border-radius: 12px;
+  }
+
+  .auth-header h1,
+  .auth-header h2 {
+    font-size: 24px;
+  }
+
+  .auth-header .subtitle {
+    font-size: 12px;
+  }
+
+  .profile-pic-container {
+    padding: 30px 15px;
+  }
+
+  .profile-pic-preview {
+    width: 80px;
+    height: 80px;
+  }
+}
