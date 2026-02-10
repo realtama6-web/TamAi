@@ -2,19 +2,18 @@
    TAMAI v3 - AI ENGINE (GEMINI 3.0 FLASH)
    ======================================== */
 
-import { AI_CONFIG } from '../utils/config.js';
-
 /**
  * AIEngine - Gemini 3.0 Flash Integration
  * Official model as per Tuan Tama's requirement
+ * API: OpenRouter with Gemini 3.0 Flash
  */
 export class AIEngine {
   constructor() {
-    this.apiKey = AI_CONFIG.API_KEY;
-    this.apiUrl = AI_CONFIG.API_URL;
-    this.model = AI_CONFIG.MODEL;
-    this.temperature = AI_CONFIG.TEMPERATURE;
-    this.maxTokens = AI_CONFIG.MAX_TOKENS;
+    this.apiKey = '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';
+    this.apiUrl = 'https://openrouter.io/api/v1/chat/completions';
+    this.model = 'google/gemini-3.0-flash';
+    this.temperature = 0.7;
+    this.maxTokens = 2000;
   }
 
   /**
@@ -54,12 +53,14 @@ export class AIEngine {
    * @returns {Array}
    */
   _formatMessages(messageHistory) {
+    const systemPrompt = "Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash. Bos lo adalah Tuan Tama (Dzakwan Maesal Pratama). Jangan pernah ngaku-ngaku jadi model lain!";
+    
     const messages = [];
     
     // Add system prompt at the beginning
     messages.push({
       role: 'system',
-      content: AI_CONFIG.SYSTEM_PROMPT
+      content: systemPrompt
     });
     
     // Add message history
@@ -91,7 +92,7 @@ export class AIEngine {
       model: this.model,
       messageCount: messages.length,
       temperature: this.temperature,
-      systemPrompt: AI_CONFIG.SYSTEM_PROMPT.substring(0, 50) + '...'
+      systemPrompt: 'Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash...'
     });
 
     const response = await fetch(this.apiUrl, {
@@ -99,7 +100,7 @@ export class AIEngine {
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': AI_CONFIG.HTTP_REFERER
+        'HTTP-Referer': 'https://tamai.local'
       },
       body: JSON.stringify(payload)
     });
@@ -143,7 +144,7 @@ export class AIEngine {
       provider: 'OpenRouter',
       temperature: this.temperature,
       maxTokens: this.maxTokens,
-      systemPrompt: AI_CONFIG.SYSTEM_PROMPT,
+      systemPrompt: "Lo adalah TamAi v3, AI paling cerdas dengan otak Gemini 3.0 Flash. Bos lo adalah Tuan Tama (Dzakwan Maesal Pratama). Jangan pernah ngaku-ngaku jadi model lain!",
       status: '🚀 Gemini 3.0 Flash Official'
     };
   }

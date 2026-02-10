@@ -5,143 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TamAi - Smart Chat Assistant</title>
     <link rel="stylesheet" href="style.css">
-    <!-- SMTPJS Library untuk Pengiriman Email OTP Real -->
-    <script src="https://smtpjs.com/v3/smtp.js"></script>
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <!-- AUTH MODAL -->
     <div id="authModal" class="auth-modal active">
         <div class="auth-container">
-            <!-- LOGIN FORM -->
+            <!-- GOOGLE LOGIN FORM -->
             <div id="loginForm" class="auth-form active">
                 <div class="auth-header">
                     <h1 class="logo">TamAi</h1>
                     <p class="subtitle">Smart Chat Assistant v3</p>
                 </div>
                 
-                <form id="loginFormElement" class="form">
-                    <div class="form-group">
-                        <label for="loginEmail">Email Address</label>
-                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" placeholder="••••••••" required>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Sign In</button>
-                </form>
-                
-                <div class="auth-divider">
-                    <span>Don't have an account?</span>
-                </div>
-                
-                <button type="button" class="btn btn-secondary" onclick="switchAuthForm('registerForm')">Create New Account</button>
-                
-            </div>
-
-            <!-- REGISTER FORM -->
-            <div id="registerForm" class="auth-form">
-                <div class="auth-header">
-                    <h2>Create Account</h2>
-                    <p class="subtitle">Join TamAi v3</p>
-                </div>
-                
-                <form id="registerFormElement" class="form">
-                    <div class="form-group">
-                        <label for="registerUsername">Username</label>
-                        <input type="text" id="registerUsername" placeholder="your_username" required>
-                        <small>Lowercase, no spaces</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="registerDisplayName">Display Name</label>
-                        <input type="text" id="registerDisplayName" placeholder="Your Full Name" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="registerEmail">Email Address</label>
-                        <input type="email" id="registerEmail" placeholder="your@email.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="registerPassword">Password</label>
-                        <input type="password" id="registerPassword" placeholder="••••••••" required>
-                        <small>Minimum 6 characters</small>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Continue to OTP</button>
-                </form>
-                
-                <button type="button" class="btn btn-secondary" onclick="switchAuthForm('loginForm')">Back to Login</button>
-            </div>
-
-            <!-- OTP VERIFICATION FORM -->
-            <div id="otpForm" class="auth-form">
-                <div class="auth-header">
-                    <h2>Verify OTP</h2>
-                    <p class="subtitle">Check your email for the code</p>
-                </div>
-                
-                <div id="otpEmailDisplay" class="otp-email-display"></div>
-                
-                <form id="otpFormElement" class="form">
-                    <div class="form-group">
-                        <label for="otpCode">Enter OTP Code</label>
-                        <div class="otp-input-group">
-                            <input type="text" id="otpCode" maxlength="6" placeholder="000000" required class="otp-input">
-                        </div>
-                        <small>6-digit code from your email</small>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Verify OTP</button>
-                </form>
-                
-                <div class="otp-resend">
-                    <button type="button" id="resendOtpBtn" class="btn btn-text">Resend OTP</button>
-                </div>
-                <div class="otp-bypass-dev" style="margin-top: 12px; text-align: center;">
-                    <button type="button" id="bypassDevBtn" class="btn btn-danger" style="font-size: 0.9rem;">🔓 Bypass Developer</button>
-                </div>
-            </div>
-
-            <!-- PROFILE PICTURE FORM -->
-            <div id="profilePicForm" class="auth-form">
-                <div class="auth-header">
-                    <h2>Profile Picture</h2>
-                    <p class="subtitle">Complete your profile</p>
-                </div>
-                
-                <div class="profile-pic-container">
-                    <div id="profilePicPreview" class="profile-pic-preview">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                    </div>
-                    <p id="profilePicFileName" class="profile-pic-filename">No image selected</p>
-                </div>
-                
-                <form id="profilePicFormElement" class="form">
-                    <div class="form-group">
-                        <input type="file" id="profilePicInput" accept="image/*" required>
-                        <label for="profilePicInput" class="file-input-label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            Click to select or drag image
-                        </label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Complete Setup</button>
-                </form>
-
-                <div class="profile-pic-option">
-                    <button type="button" class="btn btn-secondary" onclick="skipProfilePic()">Skip for Now</button>
-                </div>
+                <!-- Google Identity Services Container -->
+                <div id="g_id_onload" 
+                     data-client_id="164055469439-65jpo9bkenifr28df97i6l4g5vlvfiem.apps.googleusercontent.com"
+                     data-callback="handleCredentialResponse"></div>
+                <div class="g_id_signin" data-type="standard"></div>
             </div>
         </div>
     </div>
