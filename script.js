@@ -454,5 +454,40 @@ function showMainApp() {
   if (DOM.mainApp) DOM.mainApp.classList.remove('hidden');
 }
 
+/**
+ * Clear all user data (debugging/reset function)
+ */
+function clearAllUserData() {
+  try {
+    localStorage.removeItem('userTamAi');
+    localStorage.removeItem('tamai_current_user');
+    localStorage.removeItem('tamai_is_logged_in');
+    sessionStorage.clear();
+    
+    // Clear all chat data
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('chats_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('✅ Semua data user sudah dihapus!');
+    console.log('💾 Refresh halaman untuk login lagi...');
+    
+    // Show notification
+    if (DOM.authModal) DOM.authModal.classList.remove('hidden');
+    if (DOM.mainApp) DOM.mainApp.classList.add('hidden');
+    
+    window.location.reload();
+  } catch (error) {
+    console.error('❌ Error clearing data:', error);
+  }
+}
+
+// Buat function global accessible
+window.clearAllUserData = clearAllUserData;
+
 console.log('✅ TamAi v3 - Gemini 3.0 Flash Ready');
+console.log('💡 Tip: Ketik clearAllUserData() untuk reset semua data user');
 
