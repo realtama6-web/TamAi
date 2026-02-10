@@ -7,23 +7,23 @@
    ======================================== */
 
 :root {
-  /* Primary Colors - Blue Neon */
-  --primary: #00d4ff;
-  --primary-dark: #0099cc;
-  --primary-light: #66e5ff;
+  /* Primary Colors - Electric Blue Neon */
+  --primary: #0088ff;
+  --primary-dark: #0066cc;
+  --primary-light: #00bbff;
   
   /* Secondary Colors */
-  --secondary: #00ff88;
+  --secondary: #0088ff;
   --accent: #ff00ff;
   --danger: #ff3366;
   --warning: #ffaa00;
   --success: #00ff88;
   
-  /* Background Colors */
-  --bg-primary: #0a0e27;
-  --bg-secondary: #0f1438;
-  --bg-tertiary: #16213e;
-  --bg-light: #1a2847;
+  /* Background Colors - Pure Black */
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-tertiary: #1a1a1a;
+  --bg-light: #2d2d2d;
   
   /* Text Colors */
   --text-primary: #e0e7ff;
@@ -32,15 +32,15 @@
   --text-dark: #2d3748;
   
   /* Glass Morphism */
-  --glass-bg: rgba(10, 14, 39, 0.7);
-  --glass-border: rgba(0, 212, 255, 0.2);
-  --glass-border-light: rgba(0, 212, 255, 0.1);
+  --glass-bg: rgba(0, 0, 0, 0.8);
+  --glass-border: rgba(0, 136, 255, 0.3);
+  --glass-border-light: rgba(0, 136, 255, 0.15);
   
   /* Shadows */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.7);
   --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.8);
-  --shadow-neon: 0 0 20px rgba(0, 212, 255, 0.4);
+  --shadow-neon: 0 0 20px rgba(0, 136, 255, 0.4);
   
   /* Border Radius */
   --radius-sm: 6px;

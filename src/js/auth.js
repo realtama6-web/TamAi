@@ -11,17 +11,8 @@
  */
 function handleCredentialResponse(response) {
   try {
-    // Decode JWT payload (remove validation as per Tuan Tama's preference)
-    const base64Url = response.credential.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-
-    const data = JSON.parse(jsonPayload);
+    // Decode JWT using jwt-decode library
+    const data = jwt_decode(response.credential);
     console.log('✅ Google Login Success:', {
       name: data.name,
       email: data.email,
@@ -59,6 +50,11 @@ function handleCredentialResponse(response) {
     );
 
     console.log('🎉 TamAi Chat Interface Activated');
+
+    // Redirect to dashboard after successful login
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 500);
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     alert('Login gagal. Silakan coba lagi.');

@@ -162,6 +162,11 @@ function handleCredentialResponse(response) {
     console.log("🎉 ZUP! Login berhasil! Chat interface aktif.");
     console.log("🚀 Ready to chat!");
     
+    // Redirect to dashboard setelah login sukses
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 500);
+    
   } catch (error) {
     console.error('❌ Google Login Error:', error);
     console.error('Error details:', error.message);
