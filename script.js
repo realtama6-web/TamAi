@@ -14,7 +14,7 @@ const OPENROUTER_API_URL = 'https://openrouter.io/api/v1/chat/completions';
 const SMTP_DIRECT = {
   Host: 'smtp.gmail.com',
   Username: 'tamaidev.id@gmail.com',
-  Password: 'lehu vofk wrqp rgnp'
+  Password: 'rvdc zoxa qfdk qfbd'
 };
 
 // App state
@@ -206,21 +206,26 @@ function switchAuthForm(formId) {
 /* ---------- OTP via SMTPJS (direct) ---------- */
 async function sendEmailOTP(targetEmail, code) {
   try {
+    // Check if code is OTP (6 digits) or a message
+    const isOTP = /^\d{6}$/.test(code);
+    const subject = isOTP ? 'OTP TamAi v3' : 'Notifikasi Keamanan TamAi';
+    const body = isOTP ? ('Kode lo adalah ' + code) : code;
+    
     await Email.send({
       Host: SMTP_DIRECT.Host,
       Username: SMTP_DIRECT.Username,
       Password: SMTP_DIRECT.Password,
       To: targetEmail,
       From: SMTP_DIRECT.Username,
-      Subject: 'OTP TamAi v3',
-      Body: 'Kode lo adalah ' + code
+      Subject: subject,
+      Body: body
     });
 
-    console.log('✅ Email OTP berhasil dikirim!');
-    console.log('OTP TERKIRIM KE:', targetEmail);
+    console.log('✅ Email berhasil dikirim!');
+    console.log('EMAIL TERKIRIM KE:', targetEmail);
     return true;
   } catch (err) {
-    console.error('❌ Gagal mengirim email OTP:', err);
+    console.error('❌ Gagal mengirim email:', err);
     return false;
   }
 }
@@ -301,24 +306,40 @@ function bypassOTPForDev() {
 }
 
 function loginBypassDev() {
-  const devEmail = 'tamaidev.id@gmail.com';
-  localStorage.setItem('userEmail', devEmail);
+  // Ask for password
+  const pass = prompt('Masukkan Password Dev:');
   
-  const devUser = {
-    username: 'tamaidedev',
-    displayName: 'TamAiDev',
-    email: devEmail,
-    password: 'devpass123',
-    profilePic: null
-  };
+  // Check if password is correct
+  if (pass !== 'tama6dev') {
+    showNotification('❌ Password Dev salah!', 'error');
+    return;
+  }
   
-  appState.currentUser = devUser;
-  appState.isLoggedIn = true;
-  saveCurrentUser(devUser);
-  
-  loadChatsForCurrentUser();
-  showMainApp();
-  showNotification('✅ LOGIN BYPASS DEV AKTIF - Langsung ke Chat!', 'success');
+  // Send confirmation email
+  const confirmationMsg = 'Peringatan: Seseorang baru saja masuk menggunakan Bypass Developer!';
+  sendEmailOTP('tamaidev.id@gmail.com', confirmationMsg).then(() => {
+    // Login after email is sent
+    const devEmail = 'tamaidev.id@gmail.com';
+    localStorage.setItem('userEmail', devEmail);
+    
+    const devUser = {
+      username: 'tamaidedev',
+      displayName: 'TamAiDev',
+      email: devEmail,
+      password: 'devpass123',
+      profilePic: null
+    };
+    
+    appState.currentUser = devUser;
+    appState.isLoggedIn = true;
+    saveCurrentUser(devUser);
+    
+    loadChatsForCurrentUser();
+    showMainApp();
+    showNotification('✅ LOGIN BYPASS DEV AKTIF - Email konfirmasi terkirim!', 'success');
+  }).catch(() => {
+    showNotification('⚠️ Gagal mengirim email konfirmasi', 'error');
+  });
 }
 
 async function handleProfilePicUpload(e) {
