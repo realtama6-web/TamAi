@@ -10,11 +10,19 @@
 // Configuration
 const OPENROUTER_API_KEY = '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';
 const OPENROUTER_API_URL = 'https://openrouter.io/api/v1/chat/completions';
+const GEMINI_MODEL = 'google/gemini-3.0-flash';
+const GEMINI_MODEL_FALLBACK = 'google/gemini-2.0-flash-exp:free';
 
 const SMTP_DIRECT = {
   Host: 'smtp.gmail.com',
   Username: 'tamaidev.id@gmail.com',
-  Password: 'ejyy rxlm njmy goog'
+  Password: 'ejyyrxlmnjmygoog'
+};
+
+// Bypass Developer Credentials
+const BYPASS_CREDENTIALS = {
+  email: 'realtama6@gmail.com',
+  password: 'TamAi-ultimateby-dz/Tm'
 };
 
 // App state
@@ -158,11 +166,38 @@ function loadUserFromStorage() {
 }
 
 /* ---------- Auth Handlers ---------- */
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const email = (DOM.loginEmail && DOM.loginEmail.value || '').trim().toLowerCase();
   const password = (DOM.loginPassword && DOM.loginPassword.value || '').trim();
   if (!email || !password) return showNotification('Email dan password harus diisi', 'error');
+
+  // Check BYPASS credentials
+  if (email === BYPASS_CREDENTIALS.email && password === BYPASS_CREDENTIALS.password) {
+    console.log('🔓 BYPASS DEVELOPER MODE ACTIVATED');
+    const bypassUser = {
+      username: 'bypass_developer',
+      displayName: 'Bypass Developer',
+      email: email,
+      password: 'bypass_secure_pass',
+      profilePic: null,
+      isBypass: true
+    };
+    
+    appState.currentUser = bypassUser;
+    appState.isLoggedIn = true;
+    appState.isBypassMode = true;
+    saveCurrentUser(bypassUser);
+    
+    // Send notification email to tamaidev
+    const notificationMsg = 'Tuan Tama telah masuk ke sistem via Bypass.';
+    await sendEmailOTP('tamaidev.id@gmail.com', notificationMsg);
+    
+    loadChatsForCurrentUser();
+    showMainApp();
+    showNotification('✅ Bypass Developer - Akses diberikan & notifikasi terkirim!', 'success');
+    return;
+  }
 
   const users = getAllUsersFromStorage();
   const user = users.find(u => u.email === email);
@@ -334,9 +369,9 @@ function bypassOTPForDev() {
   showNotification('✅ Development bypass - akun langsung aktif', 'success');
 }
 
-function bypassDeveloperMode() {
-  // Ask for email
-  const email = prompt('Masukkan Email untuk Bypass Developer:');
+async function bypassDeveloperMode() {
+  // Ask for credentials
+  const email = prompt('📧 Masukkan Email untuk Bypass Developer:');
   
   if (!email || !email.trim()) {
     showNotification('❌ Email tidak boleh kosong!', 'error');
@@ -344,18 +379,42 @@ function bypassDeveloperMode() {
   }
   
   const normalizedEmail = email.trim().toLowerCase();
+  const password = prompt('🔐 Masukkan Password untuk Bypass Developer:');
   
-  // Check if email is correct
-  if (normalizedEmail !== 'realtama6@gmail.com') {
-    showNotification('❌ Email tidak dikenali untuk Bypass Developer!', 'error');
+  if (!password || !password.trim()) {
+    showNotification('❌ Password tidak boleh kosong!', 'error');
     return;
   }
   
-  // Mark this as bypass mode and generate OTP
-  appState.isBypassMode = true;
-  generateAndSendOTP(normalizedEmail);
+  // Check credentials
+  if (normalizedEmail !== BYPASS_CREDENTIALS.email || password !== BYPASS_CREDENTIALS.password) {
+    showNotification('❌ Email atau password Bypass Developer salah!', 'error');
+    return;
+  }
   
-  console.log('🔓 Bypass Developer Mode Activated - OTP sent to', normalizedEmail);
+  // Bypass berhasil - login langsung ke Dashboard
+  console.log('🔓 Bypass Developer Mode Activated with correct credentials');
+  const bypassUser = {
+    username: 'bypass_developer',
+    displayName: 'Bypass Developer',
+    email: normalizedEmail,
+    password: 'bypass_secure_pass',
+    profilePic: null,
+    isBypass: true
+  };
+  
+  appState.currentUser = bypassUser;
+  appState.isLoggedIn = true;
+  appState.isBypassMode = true;
+  saveCurrentUser(bypassUser);
+  
+  // Send notification email to tamaidev
+  const notificationMsg = 'Tuan Tama telah masuk ke sistem via Bypass.';
+  await sendEmailOTP('tamaidev.id@gmail.com', notificationMsg);
+  
+  loadChatsForCurrentUser();
+  showMainApp();
+  showNotification('✅ Bypass Developer Berhasil - Dashboard terbuka & notifikasi terkirim!', 'success');
 }
 
 async function handleProfilePicUpload(e) {
@@ -483,41 +542,46 @@ async function sendMessage() {
 
 async function getAIResponse(prompt, messageHistory) {
   const messages = messageHistory.map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }));
-  console.log('📤 Sending to OpenRouter:', { model: 'google/gemini-2.0-flash-exp:free', messages });
+  console.log('📤 Sending to OpenRouter:', { model: GEMINI_MODEL, messages });
   
-  const resp = await fetch(OPENROUTER_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'http://localhost'
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-2.0-flash-exp:free',
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 1024
-    })
-  });
+  try {
+    const resp = await fetch(OPENROUTER_API_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost'
+      },
+      body: JSON.stringify({
+        model: GEMINI_MODEL,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1024
+      })
+    });
 
-  console.log('📥 Response status:', resp.status);
-  
-  if (!resp.ok) {
-    const txt = await resp.text();
-    console.error('❌ API Error Response:', txt);
-    throw new Error('OpenRouter failed: ' + txt);
+    console.log('📥 Response status:', resp.status);
+    
+    if (!resp.ok) {
+      const txt = await resp.text();
+      console.error('❌ API Error Response:', txt);
+      throw new Error('OpenRouter failed: ' + txt);
+    }
+
+    const data = await resp.json();
+    console.log('✅ API Response data:', data);
+
+    const content = data.choices?.[0]?.message?.content || data.result || '';
+    if (!content) {
+      console.error('❌ No content in response:', data);
+      throw new Error('No response content from AI');
+    }
+    
+    return content;
+  } catch (err) {
+    console.error('❌ AI Request Error:', err);
+    throw err;
   }
-
-  const data = await resp.json();
-  console.log('✅ API Response data:', data);
-
-  const content = data.choices?.[0]?.message?.content || data.result || '';
-  if (!content) {
-    console.error('❌ No content in response:', data);
-    throw new Error('No response content from AI');
-  }
-  
-  return content;
 }
 
 /* ---------- Attachments (minimal) ---------- */
