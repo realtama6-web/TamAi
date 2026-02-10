@@ -289,6 +289,23 @@ body::after {
     font-weight: 600;
 }
 
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: 1px solid #fca5a5;
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(239, 68, 68, 0.4);
+    background: linear-gradient(135deg, #fca5a5, #ef4444);
+}
+
+.btn-danger:active {
+    transform: translateY(0);
+}
+
 .btn-text:hover {
     color: var(--primary-color);
     text-decoration: underline;

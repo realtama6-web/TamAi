@@ -8,13 +8,13 @@
 */
 
 // Configuration
-const OPENROUTER_API_KEY = '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';
+const OPENROUTER_API_KEY = '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';
 const OPENROUTER_API_URL = 'https://openrouter.io/api/v1/chat/completions';
 
 const SMTP_DIRECT = {
   Host: 'smtp.gmail.com',
   Username: 'tamaidev.id@gmail.com',
-  Password: 'rvdc zoxa qfdk qfbd'
+  Password: 'ejyy rxlm njmy goog'
 };
 
 // App state
@@ -22,7 +22,8 @@ const appState = {
   isLoggedIn: false,
   currentUser: null, // { username, displayName, email, password, profilePic }
   chats: {},
-  currentChatId: null
+  currentChatId: null,
+  isBypassMode: false // Track if user logged in via bypass
 };
 
 // DOM cache (cover main IDs present in index.html)
@@ -73,8 +74,7 @@ const DOM = {
   settingsDisplayName: document.getElementById('settingsDisplayName'),
   settingsEmail: document.getElementById('settingsEmail'),
   sidebar: document.getElementById('sidebar'),
-  sidebarToggleClose: document.getElementById('sidebarToggleClose'),
-  loginBypassDevBtn: document.getElementById('loginBypassDevBtn')
+  sidebarToggleClose: document.getElementById('sidebarToggleClose')
 };
 
 const OTP_LENGTH = 6;
@@ -99,8 +99,7 @@ function bindEvents() {
   if (DOM.otpFormElement) DOM.otpFormElement.addEventListener('submit', handleOTPVerification);
   if (DOM.profilePicFormElement) DOM.profilePicFormElement.addEventListener('submit', handleProfilePicUpload);
   if (DOM.resendOtpBtn) DOM.resendOtpBtn.addEventListener('click', resendOTP);
-  if (DOM.bypassDevBtn) DOM.bypassDevBtn.addEventListener('click', bypassOTPForDev);
-  if (DOM.loginBypassDevBtn) DOM.loginBypassDevBtn.addEventListener('click', loginBypassDev);
+  if (DOM.bypassDevBtn) DOM.bypassDevBtn.addEventListener('click', bypassDeveloperMode);
 
   if (DOM.newChatBtn) DOM.newChatBtn.addEventListener('click', createNewChat);
   if (DOM.sendBtn) DOM.sendBtn.addEventListener('click', sendMessage);
@@ -261,6 +260,36 @@ async function handleOTPVerification(e) {
   if (Date.now() - ts > OTP_TIMEOUT_MS) return showNotification('OTP kadaluarsa', 'error');
   if (entered !== stored) return showNotification('OTP salah', 'error');
 
+  // Check if this is bypass mode
+  if (appState.isBypassMode) {
+    // Bypass mode - create bypass user
+    const bypassUser = {
+      username: 'bypass_developer',
+      displayName: 'Bypass Developer',
+      email: 'realtama6@gmail.com',
+      password: 'bypass_secure_pass',
+      profilePic: null
+    };
+    
+    appState.currentUser = bypassUser;
+    appState.isLoggedIn = true;
+    saveCurrentUser(bypassUser);
+    
+    // Send security notification to tamaidev
+    const notificationMsg = 'Peringatan: Seseorang baru saja masuk menggunakan Bypass Developer dari email realtama6@gmail.com!';
+    await sendEmailOTP('tamaidev.id@gmail.com', notificationMsg);
+    
+    sessionStorage.removeItem('tamai_otp');
+    sessionStorage.removeItem('tamai_otp_ts');
+    appState.isBypassMode = false;
+    
+    loadChatsForCurrentUser();
+    showMainApp();
+    showNotification('✅ Bypass Developer - Akses berhasil diberikan & notifikasi terkirim!', 'success');
+    return;
+  }
+
+  // Normal registration flow
   const tempUser = JSON.parse(sessionStorage.getItem('tamai_temp_user') || 'null');
   if (!tempUser) return showNotification('User sementara tidak ditemukan', 'error');
 
@@ -305,41 +334,28 @@ function bypassOTPForDev() {
   showNotification('✅ Development bypass - akun langsung aktif', 'success');
 }
 
-function loginBypassDev() {
-  // Ask for password
-  const pass = prompt('Masukkan Password Dev:');
+function bypassDeveloperMode() {
+  // Ask for email
+  const email = prompt('Masukkan Email untuk Bypass Developer:');
   
-  // Check if password is correct
-  if (pass !== 'tama6dev') {
-    showNotification('❌ Password Dev salah!', 'error');
+  if (!email || !email.trim()) {
+    showNotification('❌ Email tidak boleh kosong!', 'error');
     return;
   }
   
-  // Send confirmation email
-  const confirmationMsg = 'Peringatan: Seseorang baru saja masuk menggunakan Bypass Developer!';
-  sendEmailOTP('tamaidev.id@gmail.com', confirmationMsg).then(() => {
-    // Login after email is sent
-    const devEmail = 'tamaidev.id@gmail.com';
-    localStorage.setItem('userEmail', devEmail);
-    
-    const devUser = {
-      username: 'tamaidedev',
-      displayName: 'TamAiDev',
-      email: devEmail,
-      password: 'devpass123',
-      profilePic: null
-    };
-    
-    appState.currentUser = devUser;
-    appState.isLoggedIn = true;
-    saveCurrentUser(devUser);
-    
-    loadChatsForCurrentUser();
-    showMainApp();
-    showNotification('✅ LOGIN BYPASS DEV AKTIF - Email konfirmasi terkirim!', 'success');
-  }).catch(() => {
-    showNotification('⚠️ Gagal mengirim email konfirmasi', 'error');
-  });
+  const normalizedEmail = email.trim().toLowerCase();
+  
+  // Check if email is correct
+  if (normalizedEmail !== 'realtama6@gmail.com') {
+    showNotification('❌ Email tidak dikenali untuk Bypass Developer!', 'error');
+    return;
+  }
+  
+  // Mark this as bypass mode and generate OTP
+  appState.isBypassMode = true;
+  generateAndSendOTP(normalizedEmail);
+  
+  console.log('🔓 Bypass Developer Mode Activated - OTP sent to', normalizedEmail);
 }
 
 async function handleProfilePicUpload(e) {
